@@ -15,9 +15,7 @@ https://www.fiduswriter.org/ojs-integration/
 
 2. Install OJS
 
-An installation of OJS is needed. To install OJS please follow the instructions at https://github.com/pkp/ojs/
-
-To install the latest version, please check out the master branch.
+To install OJS please follow the instructions at https://github.com/pkp/ojs/ . This plugin is currently compatible with )JS 3.0.2, so check out the ojs-stable-3_0_2 branch.
 
 3. Setup at least two journals on the OJS instance
 
@@ -44,8 +42,6 @@ php tools/upgrade.php upgrade
 6. Activate plugin in OJS
 
 Enable the plugin via the OJS website interface:
-
-Make sure you have set up at least one journal on your site. Otherwise the settings menu does not show.
 
 Open the OJS interface and select "ENABLE" under the settings "Fidus Writer Integration Plugin" under the following routes:
 
