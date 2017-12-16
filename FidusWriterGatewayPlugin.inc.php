@@ -1,8 +1,10 @@
 <?php
 
 /**
- * Copyright 2016-17, Afshin Sadeghi (sadeghi@cs.uni-bonn.de) of the OSCOSS
- * Project.
+ * Copyright (c) 2015-2017 Afshin Sadehghi
+ * Copyright (c) 2016-2017 Johannes Wilm
+ * Copyright (c) 2014-2017 Simon Fraser University
+ * Copyright (c) 2000-2017 John Willinsky
  * License: GNU GPL v2. See LICENSE.md for details.
  */
 
@@ -356,13 +358,14 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
         } else {
             // This is a new submission so we create it in the database
             $title = $this->getPOSTPayloadVariable("title");
+			$abstract = $this->getPOSTPayloadVariable("abstract");
             $journalId = $this->getPOSTPayloadVariable("journal_id");
             $fidusId = $this->getPOSTPayloadVariable("fidus_id");
             // Add the fidusUrl to the db entry of the submission.
             // Together with the 'fidusId', OJS will be able to create
             // a link to send the user to FW to edit the file.
             $fidusUrl = $this->getPOSTPayloadVariable("fidus_url");
-            $submission = $this->createNewSubmission($title, $journalId, $fidusUrl, $fidusId);
+            $submission = $this->createNewSubmission($title, $abstract, $journalId, $fidusUrl, $fidusId);
 
 			$submissionId = $submission->getId();
 
@@ -605,7 +608,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
     /**
      * @return mixed
      */
-    function createNewSubmission($title, $journalId, $fidusUrl, $fidusId) {
+    function createNewSubmission($title, $abstract, $journalId, $fidusUrl, $fidusId) {
         $locale = AppLocale::getLocale();
 
         $submissionDao = Application::getSubmissionDAO();
@@ -635,6 +638,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
         $submission->setData("sectionId", $sectionId);
         $submission->setTitle($title, $locale);
         $submission->setCleanTitle($title, $locale);
+		$submission->setAbstract($abstract, $locale);
 
         // Set fidus writer related fields.
         $submission->setData("fidusUrl", $fidusUrl);
@@ -835,8 +839,9 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
         /** @var Author $author */
         $author = $authorDao->newDataObject();
         $author->setFirstName($firstName);
-        $author->setMiddleName("");
+        //$author->setMiddleName("");
         $author->setLastName($lastName);
+		//$author->setSuffix("");
         $author->setAffiliation($affiliation, $locale);
         $author->setCountry($country);
         $author->setEmail($emailAddress);
