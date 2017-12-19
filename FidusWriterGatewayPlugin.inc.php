@@ -422,7 +422,6 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 				return $this->origRequest->getRemoteAddr();
 			};
 
-
 			// The following has been adapted from PKPSubmissionSubmitStep4Form
 
 			// Manager and assistant roles -- for each assigned to this
@@ -773,8 +772,20 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 			);
 
 			$currentStatus = $reviewRound->getStatus();
-			if (in_array($currentStatus, $reviewRoundDao->getEditorDecisionRoundStatus()) ||
-			in_array($currentStatus, array(REVIEW_ROUND_STATUS_PENDING_REVIEWERS, REVIEW_ROUND_STATUS_PENDING_REVIEWS))) {
+			if (
+			    in_array(
+                    $currentStatus,
+                    array(
+                        REVIEW_ROUND_STATUS_PENDING_REVIEWERS,
+                        REVIEW_ROUND_STATUS_PENDING_REVIEWS,
+                        REVIEW_ROUND_STATUS_REVISIONS_REQUESTED,
+                        REVIEW_ROUND_STATUS_RESUBMITTED,
+                        REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL,
+                        REVIEW_ROUND_STATUS_ACCEPTED,
+                        REVIEW_ROUND_STATUS_DECLINED
+                    )
+                )
+            ) {
 				// Editor has taken a decision in round or there are pending
 				// reviews or no reviews. Delete any existing notification.
 				if (!$notificationFactory->wasEmpty()) {
@@ -782,8 +793,8 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 					$notificationDao->deleteObject($notification);
 				}
 			} else {
-				// There is no currently decision in round. Also there is reviews,
-				// but no pending reviews. Insert notification, if not already present.
+				// There is no current decision in round. Also there are reviews,
+				// and no more pending reviews. Insert notification, if not already present.
 				if ($notificationFactory->wasEmpty()) {
 					$notificationMgr->createNotification($request, $userId, NOTIFICATION_TYPE_ALL_REVIEWS_IN, $contextId,
 						ASSOC_TYPE_REVIEW_ROUND, $reviewRound->getId(), NOTIFICATION_LEVEL_TASK);

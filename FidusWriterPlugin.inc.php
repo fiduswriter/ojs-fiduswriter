@@ -25,7 +25,7 @@ class FidusWriterPlugin extends GenericPlugin {
             if ($this->getEnabled()) {
                 HookRegistry::register('PluginRegistry::loadCategory', array($this, 'callbackLoadCategory'));
             }
-			HookRegistry::register('reviewassignmentdao::_insertobject', array($this, 'callbackAddReviewer'));
+            HookRegistry::register('reviewassignmentdao::_updateobject', array($this, 'callbackUpdateReviewAssignment'));
 			HookRegistry::register('reviewassignmentdao::_deletebyid', array($this, 'callbackRemoveReviewer'));
 			HookRegistry::register('reviewrounddao::_insertobject', array($this, 'callbackNewReviewRound'));
             HookRegistry::register('reviewrounddao::_updatestatus', array($this, 'callbackUpdateReviewRound'));
@@ -256,37 +256,59 @@ class FidusWriterPlugin extends GenericPlugin {
 	}
 
     /**
-	 * Sends information about a newly registered reviewer for a specific submission
+	 * Sends information about a registered reviewer for a specific submission
 	 * to Fidus Writer, if the submission is of a document in Fidus Writer.
      * @param $hookName
      * @param $args
      * @return bool
      */
-    function callbackAddReviewer($hookName, $args) {
+    function callbackUpdateReviewAssignment($hookName, $args) {
         $row =& $args[1];
         $submissionId = $row[0];
-        $round = $row[4];
-        $stageId = $row[2];
-        $versionString = $this->stageToVersion($stageId, $round, 'Reviewer');
-
 		$fidusId = $this->getSubmissionSetting($submissionId, 'fidusId');
 		if ($fidusId === false) {
-			// The article was not connected with Fidus Writer, so we send no
-			// notification.
+			// The submission is not connected with Fidus Writer, so we don't handle it.
 			return false;
 		}
+        $stageId = $row[2];
+        $round = $row[4];
+        $versionString = $this->stageToVersion($stageId, $round, 'Reviewer');
 		$reviewerId = $row[1];
         $reviewer = $this->getUser($reviewerId);
-        $dataArray = [
-			'email' => $reviewer->getEmail(),
-			'username' => $reviewer->getUserName(),
-			'user_id' => $reviewerId,
-			'key' => $this->getApiKey()
-		];
-		$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
-        $url = $fidusUrl . '/ojs/add_reviewer/' . $fidusId . '/' . $versionString . '/';
+        $recommendation = $row[6]; // None if not yet accepted review. 0 if accepted review.
+        $declined = $row[7]; // 1 if declined, otherwise 0
+        $reviewMethod = $row[3];
 
-        $this->sendPostRequest($url, $dataArray);
+        $fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
+
+        $url = false;
+        $dataArray = [
+            'user_id' => $reviewerId,
+            'key' => $this->getApiKey()
+        ];
+
+        if ($declined === REVIEW_ASSIGNMENT_STATUS_DECLINED) {
+            // declined
+            // Then send the email address of reviewer to Fidus Writer.
+    		$url = $fidusUrl. '/ojs/remove_reviewer/' . $fidusId . '/' . $versionString . '/';
+        } elseif ($recommendation === '0') { // Not sure what variable name this '0' corresponds to.
+            // reviewer accepted review
+            if ($reviewMethod === SUBMISSION_REVIEW_METHOD_OPEN) {
+                $dataArray['access_rights'] = 'comment';
+            } else {
+                $dataArray['access_rights'] = 'review';
+            }
+            $url = $fidusUrl. '/ojs/accept_reviewer/' . $fidusId . '/' . $versionString . '/';
+        } elseif (is_null($recommendation)) {
+            // newly registered reviewer
+            $dataArray['email'] = $reviewer->getEmail();
+            $dataArray['username'] = $reviewer->getUserName();
+            $url = $fidusUrl . '/ojs/add_reviewer/' . $fidusId . '/' . $versionString . '/';
+        }
+
+        if ($url) {
+            $this->sendPostRequest($url, $dataArray);
+        }
         return false;
     }
 
