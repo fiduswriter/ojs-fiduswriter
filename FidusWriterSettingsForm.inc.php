@@ -1,18 +1,14 @@
 <?php
 
-/**
- * @file plugins/generic/fidusWriter/SettingsForm.inc.php
- *
- * Based on code of:
- * Copyright (c) 2013 Simon Fraser University Library
- * Copyright (c) 2003-2013 John Willinsky
- * Distributed under the GNU GPL v2. For full terms see
- * https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html .
- *
- * @class SettingsForm
- * @ingroup plugins_generic_fidusWriter
- *
- * @brief Form for journal managers to modify FidusWriter plugin settings
+ /**
+  * Copyright (c) 2015-2017 Afshin Sadehghi
+  * Copyright (c) 2017 Firas Kassawat
+  * Copyright (c) 2016-2018 Johannes Wilm
+  * Copyright (c) 2014-2017 Simon Fraser University
+  * Copyright (c) 2000-2017 John Willinsky
+  * License: GNU GPL v2. See LICENSE.md for details.
+  *
+  * Form for journal managers to modify FidusWriter plugin settings
  */
 
 

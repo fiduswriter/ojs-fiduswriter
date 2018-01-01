@@ -1,7 +1,7 @@
 # OJS-FidusWriter
 
 OJS-FidusWriter is an Open Journal Systems (OJS) plugin to connect an OJS instance with Fidus Writer to from an integrated
-publishing system. 
+publishing system.
 This plugin has to be combined with the [FidusWriter-OJS plugin](https://github.com/fiduswriter/fiduswriter-ojs) for Fidus Writer.
 
 Project page:
@@ -10,12 +10,12 @@ https://www.fiduswriter.org/ojs-integration/
 
 ## Installation:
 
-1. Follow the instructions for the FidusWriter-OJS plugin to install Fidus Writer and the connector on the 
+1. Follow the instructions for the FidusWriter-OJS plugin to install Fidus Writer and the connector on the
    Fidus Writer side: https://github.com/fiduswriter/fiduswriter-ojs
 
 2. Install OJS
 
-To install OJS please follow the instructions at https://github.com/pkp/ojs/ . This plugin is currently compatible with )JS 3.0.2, so check out the ojs-stable-3_0_2 branch.
+To install OJS please follow the instructions at https://github.com/pkp/ojs/ . This plugin is currently compatible with OJS 3.1.0, so check out the ojs-stable-3_0_2 branch.
 
 3. Setup at least two journals on the OJS instance
 
@@ -66,7 +66,7 @@ In the section "Custom views" click on "Register journal". Enter the URL and API
 
 ## Credits
 
-This plugin has been developed by the [Opening Scolarly Communications in the Social Sciences (OSCOSS)](http://www.gesis.org/?id=10714) project, financed by the German Research Foundation (DFG) and executed by the University of Bonn and GESIS – Leibniz Institute for the Social Sciences. 
+This plugin has been developed by the [Opening Scolarly Communications in the Social Sciences (OSCOSS)](http://www.gesis.org/?id=10714) project, financed by the German Research Foundation (DFG) and executed by the University of Bonn and GESIS – Leibniz Institute for the Social Sciences.
 
 Lead Developer: [Afshin Sadeghi](https://github.com/sadeghiafshin)
 

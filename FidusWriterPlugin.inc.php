@@ -1,8 +1,9 @@
 <?php
 
 /**
- * Copyright 2016-17, Afshin Sadeghi (sadeghi@cs.uni-bonn.de) of the OSCOSS
- * Project.
+ * Copyright (c) 2015-2017 Afshin Sadehghi
+ * Copyright (c) 2017 Firas Kassawat
+ * Copyright (c) 2016-2018 Johannes Wilm
  * License: GNU GPL v2. See LICENSE.md for details.
  */
 

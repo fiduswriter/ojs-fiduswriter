@@ -2,7 +2,8 @@
 
 /**
  * Copyright (c) 2015-2017 Afshin Sadehghi
- * Copyright (c) 2016-2017 Johannes Wilm
+ * Copyright (c) 2017 Firas Kassawat
+ * Copyright (c) 2016-2018 Johannes Wilm
  * Copyright (c) 2014-2017 Simon Fraser University
  * Copyright (c) 2000-2017 John Willinsky
  * License: GNU GPL v2. See LICENSE.md for details.
