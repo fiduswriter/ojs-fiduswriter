@@ -423,6 +423,11 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 				return $this->origRequest->getRemoteAddr();
 			};
 
+            $request->getSite = function() {
+                $siteDao = DAORegistry::getDAO('SiteDAO');
+                return $siteDao->getSite();
+            };
+
 			// The following has been adapted from PKPSubmissionSubmitStep4Form
 
 			// Manager and assistant roles -- for each assigned to this
