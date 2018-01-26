@@ -129,6 +129,11 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
             return false;
         }
 
+        ignore_user_abort(true);
+        set_time_limit(0);
+
+        ob_start();
+
         try {
             $restCallType = $this->getRESTRequestType();
             $operator = array_shift($args);
@@ -189,12 +194,6 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
                     case 'authorSubmit':
                         // in case author submits an article
                         $resultArray = $this->authorSubmit();
-                        $response = array(
-                            "submission_id" => $resultArray["submissionId"],
-                            "user_id" => $resultArray["userId"],
-                            "version" => $this->getApiVersion()
-                        );
-                        $this->sendJsonResponse($response);
                         break;
                     case 'reviewerSubmit':
                         // in case a reviewer submits the article review
@@ -273,6 +272,11 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
         header("Content-Type: application/json;charset=utf-8");
         http_response_code(200);
         echo json_encode($response);
+        header('Connection: close');
+        header('Content-Length: '.ob_get_length());
+        ob_end_flush();
+        ob_flush();
+        flush();
         return;
     }
 
@@ -291,6 +295,12 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
             "code" => "500"
         ];
         echo json_encode($response);
+
+        header('Connection: close');
+        header('Content-Length: '.ob_get_length());
+        ob_end_flush();
+        ob_flush();
+        flush();
         return;
     }
 
@@ -337,7 +347,39 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
         // It represents the ID used in the Fidus Writer database.
         $submissionDao = Application::getSubmissionDAO();
         $locale = AppLocale::getLocale();
-        if ($submissionId !== "") {
+        if ($submissionId === "") {
+            // This is a new submission so we create it in the database
+            $title = $this->getPOSTPayloadVariable("title");
+			$abstract = $this->getPOSTPayloadVariable("abstract");
+            $journalId = $this->getPOSTPayloadVariable("journal_id");
+            $fidusId = $this->getPOSTPayloadVariable("fidus_id");
+            // Add the fidusUrl to the db entry of the submission.
+            // Together with the 'fidusId', OJS will be able to create
+            // a link to send the user to FW to edit the file.
+            $fidusUrl = $this->getPOSTPayloadVariable("fidus_url");
+            $submission = $this->createNewSubmission($title, $abstract, $journalId, $fidusUrl, $fidusId);
+
+            // We also create a user for the author
+            $emailAddress = $this->getPOSTPayloadVariable("email");
+            $firstName = $this->getPOSTPayloadVariable("first_name");
+            $lastName = $this->getPOSTPayloadVariable("last_name");
+            $user = $this->getOrCreateUser($emailAddress, $firstName, $lastName);
+            $response = array(
+                "submission_id" => $submission->getId(),
+                "user_id" => $user->getId(),
+                "version" => $this->getApiVersion()
+            );
+            $this->sendJsonResponse($response);
+            $this->notifyAboutNewSubmission(
+                $journalId,
+                $submission,
+                $user,
+                $emailAddress,
+                $firstName,
+                $lastName
+            );
+
+        } else {
             // This is an update to an existing submission. We check that it exists,
             // thereafter we update the revision id.
             $submission = $submissionDao->getById($submissionId);
@@ -355,259 +397,242 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
             $reviewRound = $reviewRoundDao->getReviewRound($submissionId, $stageId, $round);
             $reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMITTED);
             $reviewRoundDao->updateObject($reviewRound);
+            $response = array(
+                "version" => $this->getApiVersion()
+            );
+            $this->sendJsonResponse($response);
+        }
+        return;
+    }
 
-        } else {
-            // This is a new submission so we create it in the database
-            $title = $this->getPOSTPayloadVariable("title");
-			$abstract = $this->getPOSTPayloadVariable("abstract");
-            $journalId = $this->getPOSTPayloadVariable("journal_id");
-            $fidusId = $this->getPOSTPayloadVariable("fidus_id");
-            // Add the fidusUrl to the db entry of the submission.
-            // Together with the 'fidusId', OJS will be able to create
-            // a link to send the user to FW to edit the file.
-            $fidusUrl = $this->getPOSTPayloadVariable("fidus_url");
-            $submission = $this->createNewSubmission($title, $abstract, $journalId, $fidusUrl, $fidusId);
 
-			$submissionId = $submission->getId();
 
-            // We also create a user for the author
-            $emailAddress = $this->getPOSTPayloadVariable("email");
-            $firstName = $this->getPOSTPayloadVariable("first_name");
-            $lastName = $this->getPOSTPayloadVariable("last_name");
-            $user = $this->getOrCreateUser($emailAddress, $firstName, $lastName);
-            $userId = $user->getId();
+    function notifyAboutNewSubmission($journalId, $submission, $user, $emailAddress, $firstName, $lastName) {
+        // And we create an author for the user.
+        // Notice: authors are apparently not connected to users in OJS.
+        $userId = $user->getId();
+        $submissionId = $submission->getId();
+        $affiliation = $this->getPOSTPayloadVariable("affiliation");
+        $country = $this->getPOSTPayloadVariable("country");
+        $authorUrl = $this->getPOSTPayloadVariable("author_url");
+        $biography = $this->getPOSTPayloadVariable("biography");
+        $authorId = $this->saveAuthor($submissionId, $journalId, $emailAddress, $firstName, $lastName, $affiliation, $country, $authorUrl, $biography);
 
-            // And we create an author for the user.
-            // Notice: authors are apparently not connected to users in OJS.
-            $affiliation = $this->getPOSTPayloadVariable("affiliation");
-            $country = $this->getPOSTPayloadVariable("country");
-            $authorUrl = $this->getPOSTPayloadVariable("author_url");
-            $biography = $this->getPOSTPayloadVariable("biography");
-            $authorId = $this->saveAuthor($submissionId, $journalId, $emailAddress, $firstName, $lastName, $affiliation, $country, $authorUrl, $biography);
+		// Create a fake request object as the real request does not contain the required data.
+		// $request is required in the following code which comes from different parts of OJS.
 
-			// Create a fake request object as the real request does not contain the required data.
-			// $request is required in the following code which comes from different parts of OJS.
+		$request = new MockObject();
+		$request->journalId = $journalId;
+		$request->user = $user;
+		$application = PKPApplication::getApplication();
+		$request->origRequest = $application->getRequest();
 
-			$request = new MockObject();
-			$request->journalId = $journalId;
-			$request->user = $user;
-			$application = PKPApplication::getApplication();
-			$request->origRequest = $application->getRequest();
+		$request->getContext = function() {
+			$contextDao = Application::getContextDAO();
+			return $contextDao->getById($this->journalId);
+		};
 
-			$request->getContext = function() {
-				$contextDao = Application::getContextDAO();
-				return $contextDao->getById($this->journalId);
-			};
+		$request->getUser = function() {
+			return $this->user;
+		};
 
-			$request->getUser = function() {
-				return $this->user;
-			};
+		$request->getRouter = function() {
+			return $this->origRequest->getRouter();
+		};
 
-			$request->getRouter = function() {
-				return $this->origRequest->getRouter();
-			};
+		$request->isPathInfoEnabled = function() {
+			return $this->origRequest->isPathInfoEnabled();
+		};
 
-			$request->isPathInfoEnabled = function() {
-				return $this->origRequest->isPathInfoEnabled();
-			};
+		$request->isRestfulUrlsEnabled = function() {
+			return $this->origRequest->isRestfulUrlsEnabled();
+		};
 
-			$request->isRestfulUrlsEnabled = function() {
-				return $this->origRequest->isRestfulUrlsEnabled();
-			};
+		$request->getBaseUrl = function() {
+			return $this->origRequest->getBaseUrl();
+		};
 
-			$request->getBaseUrl = function() {
-				return $this->origRequest->getBaseUrl();
-			};
+		$request->getRemoteAddr = function() {
+			return $this->origRequest->getRemoteAddr();
+		};
 
-			$request->getRemoteAddr = function() {
-				return $this->origRequest->getRemoteAddr();
-			};
+		$request->getSite = function() {
+			$siteDao = DAORegistry::getDAO('SiteDAO');
+			return $siteDao->getSite();
+		};
 
-			$request->getSite = function() {
-				$siteDao = DAORegistry::getDAO('SiteDAO');
-				return $siteDao->getSite();
-			};
+		// The following has been adapted from PKPSubmissionSubmitStep4Form
 
-			// The following has been adapted from PKPSubmissionSubmitStep4Form
+		// Manager and assistant roles -- for each assigned to this
+		//  stage in setup, iff there is only one user for the group,
+		//  automatically assign the user to the stage.
+		$stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO');
+		$userGroupDao = DAORegistry::getDAO('UserGroupDAO');
+		$submissionStageGroups = $userGroupDao->getUserGroupsByStage($journalId, WORKFLOW_STAGE_ID_SUBMISSION);
+		$managerFound = false;
+		while ($userGroup = $submissionStageGroups->next()) {
+			// Only handle manager and assistant roles
+			if (!in_array($userGroup->getRoleId(), array(ROLE_ID_MANAGER, ROLE_ID_ASSISTANT))) continue;
 
-			// Manager and assistant roles -- for each assigned to this
-			//  stage in setup, iff there is only one user for the group,
-			//  automatically assign the user to the stage.
-			$stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO');
-			$userGroupDao = DAORegistry::getDAO('UserGroupDAO');
-			$submissionStageGroups = $userGroupDao->getUserGroupsByStage($journalId, WORKFLOW_STAGE_ID_SUBMISSION);
-			$managerFound = false;
-			while ($userGroup = $submissionStageGroups->next()) {
-				// Only handle manager and assistant roles
-				if (!in_array($userGroup->getRoleId(), array(ROLE_ID_MANAGER, ROLE_ID_ASSISTANT))) continue;
-
-				$users = $userGroupDao->getUsersById($userGroup->getId(), $journalId);
-				if($users->getCount() == 1) {
-					$user = $users->next();
-					$stageAssignmentDao->build($submissionId, $userGroup->getId(), $user->getId(), $userGroup->getRecommendOnly());
-					if ($userGroup->getRoleId() == ROLE_ID_MANAGER) $managerFound = true;
-				}
+			$users = $userGroupDao->getUsersById($userGroup->getId(), $journalId);
+			if($users->getCount() == 1) {
+				$user = $users->next();
+				$stageAssignmentDao->build($submissionId, $userGroup->getId(), $user->getId(), $userGroup->getRecommendOnly());
+				if ($userGroup->getRoleId() == ROLE_ID_MANAGER) $managerFound = true;
 			}
+		}
 
-			// Assign the user author to the stage
-			$authorUserGroupId =  $this->getAuthorUserGroupId($journalId);
-            if ($authorUserGroupId) {
-                $stageAssignmentDao->build($submissionId, $authorUserGroupId, $userId);
-            }
-
-
-
-			// Assign sub editors for that section
-			$submissionSubEditorFound = false;
-			$subEditorsDao = DAORegistry::getDAO('SubEditorsDAO');
-			$subEditors = $subEditorsDao->getBySectionId($submission->getSectionId(), $journalId);
-			foreach ($subEditors as $subEditor) {
-				$userGroups = $userGroupDao->getByUserId($subEditor->getId(), $journalId);
-				while ($userGroup = $userGroups->next()) {
-					if ($userGroup->getRoleId() != ROLE_ID_SUB_EDITOR) continue;
-					$stageAssignmentDao->build($submissionId, $userGroup->getId(), $subEditor->getId(), $userGroup->getRecommendOnly());
-					// If we assign a stage assignment in the Submission stage to a sub editor, make note.
-					if ($userGroupDao->userGroupAssignedToStage($userGroup->getId(), WORKFLOW_STAGE_ID_SUBMISSION)) {
-						$submissionSubEditorFound = true;
-					}
-				}
-			}
-
-			// Update assignment notifications
-			import('classes.workflow.EditorDecisionActionsManager');
-			$notificationManager = new NotificationManager();
-			$notificationManager->updateNotification(
-				$request,
-				EditorDecisionActionsManager::getStageNotifications(),
-				null,
-				ASSOC_TYPE_SUBMISSION,
-				$journalId
-			);
-
-			// Send a notification to associated users if an editor needs assigning
-			if (!$managerFound && !$submissionSubEditorFound) {
-				$roleDao = DAORegistry::getDAO('RoleDAO'); /* @var $roleDao RoleDAO */
-
-				// Get the managers.
-				$managers = $roleDao->getUsersByRoleId(ROLE_ID_MANAGER, $journalId);
-
-				$managersArray = $managers->toAssociativeArray();
-
-				$allUserIds = array_keys($managersArray);
-				foreach ($allUserIds as $userId) {
-					$notificationManager->createNotification(
-						$request, $userId, NOTIFICATION_TYPE_SUBMISSION_SUBMITTED,
-						$journalId, ASSOC_TYPE_SUBMISSION, $submissionId
-					);
-
-					// Add TASK notification indicating that a submission is unassigned
-					$notificationManager->createNotification(
-						$request,
-						$userId,
-						NOTIFICATION_TYPE_EDITOR_ASSIGNMENT_REQUIRED,
-						$journalId,
-						ASSOC_TYPE_SUBMISSION,
-						$submissionId,
-						NOTIFICATION_LEVEL_TASK
-					);
-				}
-			}
-
-			$notificationManager->updateNotification(
-				$request,
-				array(NOTIFICATION_TYPE_APPROVE_SUBMISSION),
-				null,
-				ASSOC_TYPE_SUBMISSION,
-				$submissionId
-			);
-
-			// End adaption from PKPSubmissionSubmitStep4Form
-
-			// The following has been adapted from SubmissionSubmitStep4Form
-
-			// Send author notification email
-			import('classes.mail.ArticleMailTemplate');
-			$context = $request->getContext();
-			$router = $request->getRouter();
-			$mail = new ArticleMailTemplate($submission, 'SUBMISSION_ACK', null, null, false);
-			$mail->setContext($context);
-			$authorMail = new ArticleMailTemplate($submission, 'SUBMISSION_ACK_NOT_USER', null, null, false);
-			$authorMail->setContext($context);
-
-			if ($mail->isEnabled()) {
-				// submission ack emails should be from the contact.
-				$mail->setFrom($context->getSetting('contactEmail'), $context->getSetting('contactName'));
-				$authorMail->setFrom($context->getSetting('contactEmail'), $context->getSetting('contactName'));
-
-				$user = $request->getUser();
-				$primaryAuthor = $submission->getPrimaryAuthor();
-				if (!isset($primaryAuthor)) {
-					$authors = $submission->getAuthors();
-					$primaryAuthor = $authors[0];
-				}
-				$mail->addRecipient($user->getEmail(), $user->getFullName());
-				// Add primary contact and e-mail address as specified in the journal submission settings
-				if ($context->getSetting('copySubmissionAckPrimaryContact')) {
-					$mail->addBcc(
-						$context->getSetting('contactEmail'),
-						$context->getSetting('contactName')
-					);
-				}
-				if ($copyAddress = $context->getSetting('copySubmissionAckAddress')) {
-					$mail->addBcc($copyAddress);
-				}
-
-				if ($user->getEmail() != $primaryAuthor->getEmail()) {
-					$authorMail->addRecipient($primaryAuthor->getEmail(), $primaryAuthor->getFullName());
-				}
-
-				$assignedAuthors = $submission->getAuthors();
-
-				foreach ($assignedAuthors as $author) {
-					$authorEmail = $author->getEmail();
-					// only add the author email if they have not already been added as the primary author
-					// or user creating the submission.
-					if ($authorEmail != $primaryAuthor->getEmail() && $authorEmail != $user->getEmail()) {
-						$authorMail->addRecipient($author->getEmail(), $author->getFullName());
-					}
-				}
-				$mail->bccAssignedSubEditors($submission->getId(), WORKFLOW_STAGE_ID_SUBMISSION);
-
-				$mail->assignParams(array(
-					'authorName' => $user->getFullName(),
-					'authorUsername' => $user->getUsername(),
-					'editorialContactSignature' => $context->getSetting('contactName'),
-					'submissionUrl' => $router->url($request, null, 'authorDashboard', 'submission', $submission->getId()),
-				));
-
-				$authorMail->assignParams(array(
-					'submitterName' => $user->getFullName(),
-					'editorialContactSignature' => $context->getSetting('contactName'),
-				));
-
-				$mail->send($request);
-
-				$recipients = $authorMail->getRecipients();
-				if (!empty($recipients)) {
-					$authorMail->send($request);
-				}
-			}
-
-			// Log submission.
-			import('classes.log.SubmissionEventLogEntry'); // Constants
-			import('lib.pkp.classes.log.SubmissionLog');
-			SubmissionLog::logEvent($request, $submission, SUBMISSION_LOG_SUBMISSION_SUBMIT, 'submission.event.submissionSubmitted');
-
-			// End adaption from SubmissionSubmitStep4Form
-
+		// Assign the user author to the stage
+		$authorUserGroupId =  $this->getAuthorUserGroupId($journalId);
+        if ($authorUserGroupId) {
+            $stageAssignmentDao->build($submissionId, $authorUserGroupId, $userId);
         }
 
-        $resultArray = array(
-            "journalId" => $journalId,
-            "submissionId" => $submissionId,
-            "userId" => $userId
-        );
-        return $resultArray;
+
+
+		// Assign sub editors for that section
+		$submissionSubEditorFound = false;
+		$subEditorsDao = DAORegistry::getDAO('SubEditorsDAO');
+		$subEditors = $subEditorsDao->getBySectionId($submission->getSectionId(), $journalId);
+		foreach ($subEditors as $subEditor) {
+			$userGroups = $userGroupDao->getByUserId($subEditor->getId(), $journalId);
+			while ($userGroup = $userGroups->next()) {
+				if ($userGroup->getRoleId() != ROLE_ID_SUB_EDITOR) continue;
+				$stageAssignmentDao->build($submissionId, $userGroup->getId(), $subEditor->getId(), $userGroup->getRecommendOnly());
+				// If we assign a stage assignment in the Submission stage to a sub editor, make note.
+				if ($userGroupDao->userGroupAssignedToStage($userGroup->getId(), WORKFLOW_STAGE_ID_SUBMISSION)) {
+					$submissionSubEditorFound = true;
+				}
+			}
+		}
+
+		// Update assignment notifications
+		import('classes.workflow.EditorDecisionActionsManager');
+		$notificationManager = new NotificationManager();
+		$notificationManager->updateNotification(
+			$request,
+			EditorDecisionActionsManager::getStageNotifications(),
+			null,
+			ASSOC_TYPE_SUBMISSION,
+			$journalId
+		);
+
+		// Send a notification to associated users if an editor needs assigning
+		if (!$managerFound && !$submissionSubEditorFound) {
+			$roleDao = DAORegistry::getDAO('RoleDAO'); /* @var $roleDao RoleDAO */
+
+			// Get the managers.
+			$managers = $roleDao->getUsersByRoleId(ROLE_ID_MANAGER, $journalId);
+
+			$managersArray = $managers->toAssociativeArray();
+
+			$allUserIds = array_keys($managersArray);
+			foreach ($allUserIds as $userId) {
+				$notificationManager->createNotification(
+					$request, $userId, NOTIFICATION_TYPE_SUBMISSION_SUBMITTED,
+					$journalId, ASSOC_TYPE_SUBMISSION, $submissionId
+				);
+
+				// Add TASK notification indicating that a submission is unassigned
+				$notificationManager->createNotification(
+					$request,
+					$userId,
+					NOTIFICATION_TYPE_EDITOR_ASSIGNMENT_REQUIRED,
+					$journalId,
+					ASSOC_TYPE_SUBMISSION,
+					$submissionId,
+					NOTIFICATION_LEVEL_TASK
+				);
+			}
+		}
+
+		$notificationManager->updateNotification(
+			$request,
+			array(NOTIFICATION_TYPE_APPROVE_SUBMISSION),
+			null,
+			ASSOC_TYPE_SUBMISSION,
+			$submissionId
+		);
+
+		// End adaption from PKPSubmissionSubmitStep4Form
+
+		// The following has been adapted from SubmissionSubmitStep4Form
+
+		// Send author notification email
+		import('classes.mail.ArticleMailTemplate');
+		$context = $request->getContext();
+		$router = $request->getRouter();
+		$mail = new ArticleMailTemplate($submission, 'SUBMISSION_ACK', null, null, false);
+		$mail->setContext($context);
+		$authorMail = new ArticleMailTemplate($submission, 'SUBMISSION_ACK_NOT_USER', null, null, false);
+		$authorMail->setContext($context);
+
+		if ($mail->isEnabled()) {
+			// submission ack emails should be from the contact.
+			$mail->setFrom($context->getSetting('contactEmail'), $context->getSetting('contactName'));
+			$authorMail->setFrom($context->getSetting('contactEmail'), $context->getSetting('contactName'));
+
+			$user = $request->getUser();
+			$primaryAuthor = $submission->getPrimaryAuthor();
+			if (!isset($primaryAuthor)) {
+				$authors = $submission->getAuthors();
+				$primaryAuthor = $authors[0];
+			}
+			$mail->addRecipient($user->getEmail(), $user->getFullName());
+			// Add primary contact and e-mail address as specified in the journal submission settings
+			if ($context->getSetting('copySubmissionAckPrimaryContact')) {
+				$mail->addBcc(
+					$context->getSetting('contactEmail'),
+					$context->getSetting('contactName')
+				);
+			}
+			if ($copyAddress = $context->getSetting('copySubmissionAckAddress')) {
+				$mail->addBcc($copyAddress);
+			}
+
+			if ($user->getEmail() != $primaryAuthor->getEmail()) {
+				$authorMail->addRecipient($primaryAuthor->getEmail(), $primaryAuthor->getFullName());
+			}
+
+			$assignedAuthors = $submission->getAuthors();
+
+			foreach ($assignedAuthors as $author) {
+				$authorEmail = $author->getEmail();
+				// only add the author email if they have not already been added as the primary author
+				// or user creating the submission.
+				if ($authorEmail != $primaryAuthor->getEmail() && $authorEmail != $user->getEmail()) {
+					$authorMail->addRecipient($author->getEmail(), $author->getFullName());
+				}
+			}
+			$mail->bccAssignedSubEditors($submission->getId(), WORKFLOW_STAGE_ID_SUBMISSION);
+
+			$mail->assignParams(array(
+				'authorName' => $user->getFullName(),
+				'authorUsername' => $user->getUsername(),
+				'editorialContactSignature' => $context->getSetting('contactName'),
+				'submissionUrl' => $router->url($request, null, 'authorDashboard', 'submission', $submission->getId()),
+			));
+
+			$authorMail->assignParams(array(
+				'submitterName' => $user->getFullName(),
+				'editorialContactSignature' => $context->getSetting('contactName'),
+			));
+
+			$mail->send($request);
+
+			$recipients = $authorMail->getRecipients();
+			if (!empty($recipients)) {
+				$authorMail->send($request);
+			}
+		}
+
+		// Log submission.
+		import('classes.log.SubmissionEventLogEntry'); // Constants
+		import('lib.pkp.classes.log.SubmissionLog');
+		SubmissionLog::logEvent($request, $submission, SUBMISSION_LOG_SUBMISSION_SUBMIT, 'submission.event.submissionSubmitted');
+
+		// End adaption from SubmissionSubmitStep4Form
+
     }
 
     /**
