@@ -2,11 +2,12 @@
 <!DOCTYPE locale SYSTEM "../../../../../lib/pkp/dtd/locale.dtd">
 
 <!--
-  * plugins/generic/fidusWriter/locale/en_US/locale.xml
+  * plugins/generic/fidusWriter/locale/pt_BR/locale.xml
   * Localization strings
+  *  Translated by Job Diógenes Ribeiro Borges
   -->
 
-<locale name="en_US" full_name="U.S. English">
+<locale name="pt_BR" full_name="Português Brasil">
 	<message key="plugins.generic.fidusWriter.displayName">Plugin de integração com o Fidus Writer</message>
 	<message key="plugins.generic.fidusWriter.description">Este plugin fornece o ponto de integração do OJS com uma instância do Fidus Writer.</message>
 	<message key="plugins.generic.fidusWriter.settings">Configurações</message>
