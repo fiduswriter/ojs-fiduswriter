@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE locale SYSTEM "../../../../../lib/pkp/dtd/locale.dtd">
+
+<!--
+  * plugins/generic/fidusWriter/locale/pt_BR/locale.xml
+  * Localization strings
+  *  Translated by Job Diógenes Ribeiro Borges
+  -->
+
+<locale name="pt_BR" full_name="Português Brasil">
+	<message key="plugins.generic.fidusWriter.displayName">Plugin de integração com o Fidus Writer</message>
+	<message key="plugins.generic.fidusWriter.description">Este plugin fornece o ponto de integração do OJS com uma instância do Fidus Writer.</message>
+	<message key="plugins.generic.fidusWriter.settings">Configurações</message>
+    <message key="plugins.generic.fidusWriter.settings.apiKey.description">Por favor definir una chave secreta de API para se comunicar com o Fidus Writer.</message>
+    <message key="plugins.generic.fidusWriter.settings.apiKey">Chave API do Fidus Writer</message>
+	<message key="plugins.generic.fidusWriter.settings.saved">A chave API do Fidus Writer API Key foi gravada</message>
+    <message key="plugins.generic.fidusWriter.manager.settings.apiKeyRequired">É necessário a chave de API do Fidus Writer!</message>
+	<message key="plugins.generic.fidusWriter.linkText">Abrir o documento no Fidus Writer</message>
+</locale>
