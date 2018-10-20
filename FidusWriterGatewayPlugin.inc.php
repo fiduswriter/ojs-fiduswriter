@@ -320,8 +320,8 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
             $journalArray[] = [
                 'id' => $journal->getId(),
                 'name' => $journal->getLocalizedName(),
-                'contact_email' => $journal->_data['contactEmail'],
-                'contact_name' => $journal->_data['contactName'],
+                'contact_email' => $journal->getSetting('contactEmail'),
+                'contact_name' => $journal->getSetting('contactName'),
                 'url_relative_path' => $journal->getPath(),
                 'description' => $journal->getLocalizedDescription(),
             ];
@@ -388,14 +388,14 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
                 throw new Exception("Error: no submission with given submissionId $submissionId exists");
             }
             // Given that this is a resubmission, we need to set the status of
-            // the stage to REVIEW_ROUND_STATUS_RESUBMITTED.
+            // the stage to REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW.
             $versionString = $this->getPOSTPayloadVariable("version");
             $versionInfo = $this->versionToStage($versionString);
             $stageId = $versionInfo['stageId'];
             $round = $versionInfo['round'];
             $reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
             $reviewRound = $reviewRoundDao->getReviewRound($submissionId, $stageId, $round);
-            $reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMITTED);
+            $reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW);
             $reviewRoundDao->updateObject($reviewRound);
             $response = array(
                 "version" => $this->getApiVersion()
@@ -810,7 +810,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
                         REVIEW_ROUND_STATUS_PENDING_REVIEWERS,
                         REVIEW_ROUND_STATUS_PENDING_REVIEWS,
                         REVIEW_ROUND_STATUS_REVISIONS_REQUESTED,
-                        REVIEW_ROUND_STATUS_RESUBMITTED,
+                        REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW,
                         REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL,
                         REVIEW_ROUND_STATUS_ACCEPTED,
                         REVIEW_ROUND_STATUS_DECLINED

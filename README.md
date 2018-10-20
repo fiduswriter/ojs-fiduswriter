@@ -15,7 +15,7 @@ https://www.fiduswriter.org/ojs-integration/
 
 2. Install OJS
 
-To install OJS please follow the instructions at https://github.com/pkp/ojs/ . This plugin is currently compatible with OJS 3.1.0, so check out the ojs-stable-3_0_2 branch.
+To install OJS please follow the instructions at https://github.com/pkp/ojs/ . This plugin is currently compatible with OJS 3.1.1, so check out the ojs-stable-3_1_0 branch.
 
 3. Setup at least two journals on the OJS instance
 

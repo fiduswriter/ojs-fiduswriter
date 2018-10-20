@@ -17,8 +17,8 @@ class FidusWriterPlugin extends GenericPlugin {
      * @return bool
      */
 
-    function register($category, $path) {
-        if (parent::register($category, $path)) {
+    function register($category, $path, $mainContextId = NULL) {
+        if (parent::register($category, $path, $mainContextId)) {
 			/* Note: it looks counterintuitive that only the first listener checks
 			   whether the plugin is enabled, but the way OJS is set up, if one
 			   moves the other listeners inside the check, they stop working.
@@ -203,15 +203,15 @@ class FidusWriterPlugin extends GenericPlugin {
 					// more files or similar.
                     $stageId =  intval($_GET['stageId']);
                     $round = 0;
-                    $reviewRoundId = $_GET['reviewRoundId'];
-                    if (isset($reviewRoundId)) {
+                    if (isset($_GET['reviewRoundId'])) {
+                        $reviewRoundId = $_GET['reviewRoundId'];
                         $reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
                         $reviewRound = $reviewRoundDao->getById($reviewRoundId);
                         $round = $reviewRound->getRound();
                         $status = $reviewRound->getStatus();
                         if(
                             $status != REVIEW_ROUND_STATUS_REVISIONS_REQUESTED &&
-                            $status != REVIEW_ROUND_STATUS_RESUBMITTED &&
+                            $status != REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW &&
                             $title === 'editor.submission.revisions'
                         ) {
                             // The review round has not reached a status where there
@@ -377,7 +377,7 @@ class FidusWriterPlugin extends GenericPlugin {
             // We need to copy a file from the previous revision round. If the author has
             // submitted something for the round, we use that version.
             // Otherwise, we use the Reviewer's version.
-            if($oldReviewRound->getStatus()===REVIEW_ROUND_STATUS_RESUBMITTED) {
+            if($oldReviewRound->getStatus()===REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW) {
                 $oldRevisionType = 'Author';
             } else {
                 $oldRevisionType = 'Reviewer';
@@ -437,7 +437,7 @@ class FidusWriterPlugin extends GenericPlugin {
         // document.
         $authorStates = array(
             REVIEW_ROUND_STATUS_REVISIONS_REQUESTED,
-            REVIEW_ROUND_STATUS_RESUBMITTED,
+            REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW,
             REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL,
             REVIEW_ROUND_STATUS_ACCEPTED,
             REVIEW_ROUND_STATUS_DECLINED
