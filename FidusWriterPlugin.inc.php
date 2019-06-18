@@ -291,7 +291,7 @@ class FidusWriterPlugin extends GenericPlugin {
         if ($declined === REVIEW_ASSIGNMENT_STATUS_DECLINED) {
             // declined
             // Then send the email address of reviewer to Fidus Writer.
-    		$url = $fidusUrl. '/ojs/remove_reviewer/' . $fidusId . '/' . $versionString . '/';
+    		$url = $fidusUrl. '/api/ojs/remove_reviewer/' . $fidusId . '/' . $versionString . '/';
         } elseif ($recommendation === '0') { // Not sure what variable name this '0' corresponds to.
             // reviewer accepted review
             if ($reviewMethod === SUBMISSION_REVIEW_METHOD_OPEN) {
@@ -299,12 +299,12 @@ class FidusWriterPlugin extends GenericPlugin {
             } else {
                 $dataArray['access_rights'] = 'review';
             }
-            $url = $fidusUrl. '/ojs/accept_reviewer/' . $fidusId . '/' . $versionString . '/';
+            $url = $fidusUrl. '/api/ojs/accept_reviewer/' . $fidusId . '/' . $versionString . '/';
         } elseif (is_null($recommendation)) {
             // newly registered reviewer
             $dataArray['email'] = $reviewer->getEmail();
             $dataArray['username'] = $reviewer->getUserName();
-            $url = $fidusUrl . '/ojs/add_reviewer/' . $fidusId . '/' . $versionString . '/';
+            $url = $fidusUrl . '/api/ojs/add_reviewer/' . $fidusId . '/' . $versionString . '/';
         }
 
         if ($url) {
@@ -343,7 +343,7 @@ class FidusWriterPlugin extends GenericPlugin {
 		];
         // Then send the email address of reviewer to Fidus Writer.
 		$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
-		$url = $fidusUrl. '/ojs/remove_reviewer/' . $fidusId . '/' . $versionString . '/';
+		$url = $fidusUrl. '/api/ojs/remove_reviewer/' . $fidusId . '/' . $versionString . '/';
         $this->sendPostRequest($url, $dataArray);
         return false;
     }
@@ -395,7 +395,7 @@ class FidusWriterPlugin extends GenericPlugin {
         ];
 
         $fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
-        $url = $fidusUrl . '/ojs/create_copy/' . $fidusId . '/';
+        $url = $fidusUrl . '/api/ojs/create_copy/' . $fidusId . '/';
         $this->sendPostRequest($url, $dataArray);
 
         return false;
@@ -461,7 +461,7 @@ class FidusWriterPlugin extends GenericPlugin {
             ];
 
             $fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
-            $url = $fidusUrl . '/ojs/create_copy/' . $fidusId . '/';
+            $url = $fidusUrl . '/api/ojs/create_copy/' . $fidusId . '/';
             $this->sendPostRequest($url, $dataArray);
 
         }
