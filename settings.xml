@@ -2,18 +2,18 @@
 <!DOCTYPE plugin_settings SYSTEM "../../../lib/pkp/dtd/pluginSettings.dtd">
 
 <!--
-  * plugins/generic/fidusWriter/settings.xml
-  * Default plugin settings.
-  *
-  -->
+* plugins/generic/fidusWriter/settings.xml
+* Default plugin settings.
+*
+-->
 
 <plugin_settings>
-    <setting type="bool">
+	<setting type="bool">
 		<name>enabled</name>
 		<value>true</value>
 	</setting>
-    <setting type="string">
-        <name>apiKey</name>
-        <value>API_KEY</value>
-    </setting>
+	<setting type="string">
+		<name>apiKey</name>
+		<value>API_KEY</value>
+	</setting>
 </plugin_settings>
