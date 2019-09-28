@@ -1002,7 +1002,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 					'key' => $this->getApiKey()
 				);
 
-				$request = curl_init($fidusUrl . '/ojs/get_login_token/?' . http_build_query($dataArray));
+				$request = curl_init($fidusUrl . '/api/ojs/get_login_token/?' . http_build_query($dataArray));
 				curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
 				$result = json_decode(curl_exec($request), true);
 				return $result['token'];
@@ -1035,7 +1035,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 				echo '
 				<html>
 				<body onload="document.frm1.submit()">
-				<form method="post" action="' . $fidusUrl . '/ojs/revision/' . $fidusId . '/' . $versionString . '/" name = "frm1" class="inline">
+				<form method="post" action="' . $fidusUrl . '/api/ojs/revision/' . $fidusId . '/' . $versionString . '/" name = "frm1" class="inline">
 				<input type="hidden" name="token" value="' . $loginToken . '">
 				<button type="submit" name="submit_param" style="display=none;" value="submit_value" class="link-button"></button>
 				</form>
