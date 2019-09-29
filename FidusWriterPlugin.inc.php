@@ -56,7 +56,7 @@ class FidusWriterPlugin extends GenericPlugin {
 	* @return string
 	*/
 	function getTemplatePath($inCore = false) {
-		return parent::getTemplatePath($inCore) . 'templates/';
+		return parent::getTemplatePath($inCore) . '/';
 	}
 
 	/**
@@ -214,6 +214,7 @@ class FidusWriterPlugin extends GenericPlugin {
 						if(
 							$status != REVIEW_ROUND_STATUS_REVISIONS_REQUESTED &&
 							$status != REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW &&
+							$status != REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED &&
 							$title === 'editor.submission.revisions'
 						) {
 							// The review round has not reached a status where there
@@ -379,7 +380,15 @@ class FidusWriterPlugin extends GenericPlugin {
 			// We need to copy a file from the previous revision round. If the author has
 			// submitted something for the round, we use that version.
 			// Otherwise, we use the Reviewer's version.
-			if($oldReviewRound->getStatus()===REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW) {
+			if(
+				in_array(
+					$oldReviewRound->getStatus(),
+					array(
+						REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW,
+						REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED
+					)
+				)
+			) {
 				$oldRevisionType = 'Author';
 			} else {
 				$oldRevisionType = 'Reviewer';
@@ -440,6 +449,7 @@ class FidusWriterPlugin extends GenericPlugin {
 		$authorStates = array(
 			REVIEW_ROUND_STATUS_REVISIONS_REQUESTED,
 			REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW,
+			REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED,
 			REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL,
 			REVIEW_ROUND_STATUS_ACCEPTED,
 			REVIEW_ROUND_STATUS_DECLINED

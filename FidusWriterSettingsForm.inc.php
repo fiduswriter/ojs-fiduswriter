@@ -26,8 +26,7 @@ class FidusWriterSettingsForm extends Form {
 	*/
 	function __construct($plugin) {
 		$this->_plugin = $plugin;
-
-		parent::__construct($plugin->getTemplatePath() . 'settingsForm.tpl');
+		parent::__construct($plugin->getTemplateResource('settingsForm.tpl'));
 		$this->addCheck(new FormValidatorPost($this));
 		$this->addCheck(new FormValidatorCSRF($this));
 	}

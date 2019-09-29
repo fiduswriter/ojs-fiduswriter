@@ -9,6 +9,8 @@
 * License: GNU GPL v2. See LICENSE.md for details.
 */
 
+import('lib.pkp.classes.security.authorization.PolicySet');
+
 class MockObject extends stdClass {
 	// Used to create request mock object, to emulate real request. See below.
 	public function __call($closure, $args) {
@@ -32,6 +34,10 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 	function __construct($parentPluginName) {
 		parent::__construct();
 		$this->parentPluginName = $parentPluginName;
+	}
+
+	public function getPolicies() {
+		return new PolicySet(COMBINING_PERMIT_OVERRIDES);
 	}
 
 	/**
@@ -73,7 +79,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 	}
 
 	/**
-	* Store the path value iin the parent plugin so that it is accessible from
+	* Store the path value in the parent plugin so that it is accessible from
 	* both.
 	*/
 	public function getPluginUrl() {
@@ -141,35 +147,35 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 			if ($restCallType === "GET") {
 				switch ($operator) {
 					case 'test': // Basic test
-					$response = array(
-						"message" => "GET response",
-						"version" => $this->getApiVersion()
-					);
-					$this->sendJsonResponse($response);
-					break;
-					case 'journals':
-					// Get all journals setup on this server.
-					$key = $_GET['key'];
-					if ($this->getApiKey() !== $key) {
-						// Not correct api key.
-						$error = "Incorrect API Key";
-						$this->sendErrorResponse($error);
+						$response = array(
+							"message" => "GET response",
+							"version" => $this->getApiVersion()
+						);
+						$this->sendJsonResponse($response);
 						break;
-					}
+					case 'journals':
+						// Get all journals setup on this server.
+						$key = $_GET['key'];
+						if ($this->getApiKey() !== $key) {
+							// Not correct api key.
+							$error = "Incorrect API Key";
+							$this->sendErrorResponse($error);
+							break;
+						}
 
-					$response = $this->getJournals();
-					$this->sendJsonResponse($response);
-					break;
+						$response = $this->getJournals();
+						$this->sendJsonResponse($response);
+						break;
 					case 'documentReview':
-					// Forward the user to the editor logged in with
-					// appropriate rights.
-					$submissionId = intval($_GET['submissionId']);
-					$versionString = $_GET['version'];
-					$this->loginFidusWriter($submissionId, $versionString);
-					break;
+						// Forward the user to the editor logged in with
+						// appropriate rights.
+						$submissionId = intval($_GET['submissionId']);
+						$versionString = $_GET['version'];
+						$this->loginFidusWriter($submissionId, $versionString);
+						break;
 					default:
-					$error = "OJS Integration REST Plugin: Not a valid GET request";
-					$this->sendErrorResponse($error);
+						$error = "OJS Integration REST Plugin: Not a valid GET request";
+						$this->sendErrorResponse($error);
 				}
 
 			}
@@ -185,28 +191,27 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 
 				switch ($operator) {
 					case 'test': // Basic test
-					$response = array(
-						"message" => "POST test response",
-						"version" => $this->getApiVersion()
-					);
-					$this->sendJsonResponse($response);
-					break;
+						$response = array(
+							"message" => "POST test response",
+							"version" => $this->getApiVersion()
+						);
+						$this->sendJsonResponse($response);
+						break;
 					case 'authorSubmit':
-					// in case author submits an article
-					$resultArray = $this->authorSubmit();
-					break;
+						// in case author submits an article
+						$resultArray = $this->authorSubmit();
+						break;
 					case 'reviewerSubmit':
-					// in case a reviewer submits the article review
-					$this->reviewerSubmit($request);
-					$response = array(
-						"version" => $this->getApiVersion()
-					);
-					$this->sendJsonResponse($response);
-					break;
-
+						// in case a reviewer submits the article review
+						$this->reviewerSubmit($request);
+						$response = array(
+							"version" => $this->getApiVersion()
+						);
+						$this->sendJsonResponse($response);
+						break;
 					default:
-					$error = " Not a valid request";
-					$this->sendErrorResponse($error);
+						$error = " Not a valid request";
+						$this->sendErrorResponse($error);
 				}
 			}
 
@@ -388,14 +393,14 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 				throw new Exception("Error: no submission with given submissionId $submissionId exists");
 			}
 			// Given that this is a resubmission, we need to set the status of
-			// the stage to REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW.
+			// the stage to REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED.
 			$versionString = $this->getPOSTPayloadVariable("version");
 			$versionInfo = $this->versionToStage($versionString);
 			$stageId = $versionInfo['stageId'];
 			$round = $versionInfo['round'];
 			$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
 			$reviewRound = $reviewRoundDao->getReviewRound($submissionId, $stageId, $round);
-			$reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW);
+			$reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED);
 			$reviewRoundDao->updateObject($reviewRound);
 			$response = array(
 				"version" => $this->getApiVersion()
@@ -433,7 +438,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		};
 
 		$request->getUser = function() {
-			return $this->user;
+			return $user;
 		};
 
 		$request->getRouter = function() {
@@ -728,10 +733,15 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		$reviewRound = $reviewRoundDao->getReviewRound($submissionId, $stageId, $round);
 
 		$reviewAssignmentDao = DAORegistry::getDAO('ReviewAssignmentDAO');
-		$reviewAssignment = $reviewAssignmentDao->getReviewAssignment($reviewRound->getId(), $reviewerId);
+		$reviewAssignment = $reviewAssignmentDao->getReviewAssignment(
+			$reviewRound->getId(),
+			$reviewerId
+		);
 
 		$reviewerSubmissionDao = DAORegistry::getDAO('ReviewerSubmissionDAO');
-		$reviewerSubmission = $reviewerSubmissionDao->getReviewerSubmission($reviewAssignment->getId());
+		$reviewerSubmission = $reviewerSubmissionDao->getReviewerSubmission(
+			$reviewAssignment->getId()
+		);
 
 		$editorMessageCommentText = $this->getPOSTPayloadVariable("editor_message");
 		$editorAndAuthorMessageCommentText = $this->getPOSTPayloadVariable("editor_author_message");
@@ -757,19 +767,62 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		$receivedList = array(); // Avoid sending twice to the same user.
 		$notificationMgr = new NotificationManager();
 
+		$mockRequest = new MockObject();
+		$userDao = DAORegistry::getDAO('UserDAO');
+		$mockRequest->user = $userDao->getById($reviewerId);
+		$mockRequest->getUser = function() {
+			return $this->user;
+		};
+
+		$mockRequest->origRequest = $request;
+
+		$mockRequest->getContext = function() {
+			return $this->origRequest->getContext();
+		};
+
+		$mockRequest->getSite = function() {
+			return $this->origRequest->getSite();
+		};
+
+		$mockRequest->getRouter = function() {
+			return $this->origRequest->getRouter();
+		};
+
+		$mockRequest->isPathInfoEnabled = function() {
+			return $this->origRequest->isPathInfoEnabled();
+		};
+
+		$mockRequest->isRestfulUrlsEnabled = function() {
+			return $this->origRequest->isRestfulUrlsEnabled();
+		};
+
+		$mockRequest->getBaseUrl = function() {
+			return $this->origRequest->getBaseUrl();
+		};
+
+		$mockRequest->getRemoteAddr = function() {
+			return $this->origRequest->getRemoteAddr();
+		};
+
 		while ($stageAssignment = $stageAssignments->next()) {
 			$userId = $stageAssignment->getUserId();
-			$userGroup = $userGroupDao->getById($stageAssignment->getUserGroupId(), $submission->getContextId());
+			$userGroup = $userGroupDao->getById(
+				$stageAssignment->getUserGroupId(),
+				$submission->getContextId()
+			);
 
 			// Only send notifications about reviewer comment notification to managers and editors
-			// and only send to usrs who have not received a notificcation already.
+			// and only send to users who have not received a notification already.
 			if (!in_array(
 				$userGroup->getRoleId(),
 				array(ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR)) || in_array($userId, $receivedList)
 				) continue;
 
+
+
+
 				$notificationMgr->createNotification(
-					$request, $userId, NOTIFICATION_TYPE_REVIEWER_COMMENT,
+					$mockRequest, $userId, NOTIFICATION_TYPE_REVIEWER_COMMENT,
 					$submission->getContextId(), ASSOC_TYPE_REVIEW_ASSIGNMENT, $reviewAssignment->getId()
 				);
 
@@ -795,12 +848,13 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 				$userId = $stageAssignment->getUserId();
 
 				// Get any existing notification.
-				$notificationFactory = $notificationDao->getByAssoc(
-					ASSOC_TYPE_REVIEW_ROUND,
-					$reviewRound->getId(), $userId,
-					NOTIFICATION_TYPE_ALL_REVIEWS_IN,
-					$contextId
-				);
+				// $notificationFactory = $notificationDao->getByAssoc(
+				// 	ASSOC_TYPE_REVIEW_ROUND,
+				// 	$reviewRound->getId(),
+				// 	$userId,
+				// 	NOTIFICATION_TYPE_ALL_REVIEWS_IN,
+				// 	$contextId
+				// );
 
 				$currentStatus = $reviewRound->getStatus();
 				if (
@@ -811,6 +865,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 							REVIEW_ROUND_STATUS_PENDING_REVIEWS,
 							REVIEW_ROUND_STATUS_REVISIONS_REQUESTED,
 							REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW,
+							REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED,
 							REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL,
 							REVIEW_ROUND_STATUS_ACCEPTED,
 							REVIEW_ROUND_STATUS_DECLINED
@@ -819,17 +874,24 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 					) {
 						// Editor has taken a decision in round or there are pending
 						// reviews or no reviews. Delete any existing notification.
-						if (!$notificationFactory->wasEmpty()) {
-							$notification = $notificationFactory->next();
-							$notificationDao->deleteObject($notification);
-						}
+						// if (!$notificationFactory->wasEmpty()) {
+						// 	$notification = $notificationFactory->next();
+						// 	$notificationDao->deleteObject($notification);
+						// }
 					} else {
 						// There is no current decision in round. Also there are reviews,
 						// and no more pending reviews. Insert notification, if not already present.
-						if ($notificationFactory->wasEmpty()) {
-							$notificationMgr->createNotification($request, $userId, NOTIFICATION_TYPE_ALL_REVIEWS_IN, $contextId,
-							ASSOC_TYPE_REVIEW_ROUND, $reviewRound->getId(), NOTIFICATION_LEVEL_TASK);
-						}
+						// if ($notificationFactory->wasEmpty()) {
+						// 	$notificationMgr->createNotification(
+						// 		$request,
+						// 		$userId,
+						// 		NOTIFICATION_TYPE_ALL_REVIEWS_IN,
+						// 		$contextId,
+						// 		ASSOC_TYPE_REVIEW_ROUND,
+						// 		$reviewRound->getId(),
+						// 		NOTIFICATION_LEVEL_TASK
+						// 	);
+						// }
 					}
 				}
 
@@ -1002,7 +1064,9 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 					'key' => $this->getApiKey()
 				);
 
-				$request = curl_init($fidusUrl . '/api/ojs/get_login_token/?' . http_build_query($dataArray));
+				$request = curl_init(
+					$fidusUrl . '/api/ojs/get_login_token/?' . http_build_query($dataArray)
+				);
 				curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
 				$result = json_decode(curl_exec($request), true);
 				return $result['token'];
