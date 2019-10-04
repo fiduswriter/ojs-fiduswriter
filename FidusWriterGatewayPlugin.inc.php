@@ -141,35 +141,35 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
       if ($restCallType === "GET") {
         switch ($operator) {
           case 'test': // Basic test
-          $response = array(
-            "message" => "GET response",
-            "version" => $this->getApiVersion()
-          );
-          $this->sendJsonResponse($response);
-          break;
-          case 'journals':
-          // Get all journals setup on this server.
-          $key = $_GET['key'];
-          if ($this->getApiKey() !== $key) {
-            // Not correct api key.
-            $error = "Incorrect API Key";
-            $this->sendErrorResponse($error);
+            $response = array(
+              "message" => "GET response",
+              "version" => $this->getApiVersion()
+            );
+            $this->sendJsonResponse($response);
             break;
-          }
+          case 'journals':
+            // Get all journals setup on this server.
+            $key = $_GET['key'];
+            if ($this->getApiKey() !== $key) {
+              // Not correct api key.
+              $error = "Incorrect API Key";
+              $this->sendErrorResponse($error);
+              break;
+            }
 
-          $response = $this->getJournals();
-          $this->sendJsonResponse($response);
-          break;
+            $response = $this->getJournals();
+            $this->sendJsonResponse($response);
+            break;
           case 'documentReview':
-          // Forward the user to the editor logged in with
-          // appropriate rights.
-          $submissionId = intval($_GET['submissionId']);
-          $versionString = $_GET['version'];
-          $this->loginFidusWriter($submissionId, $versionString);
-          break;
+            // Forward the user to the editor logged in with
+            // appropriate rights.
+            $submissionId = intval($_GET['submissionId']);
+            $versionString = $_GET['version'];
+            $this->loginFidusWriter($submissionId, $versionString);
+            break;
           default:
-          $error = "OJS Integration REST Plugin: Not a valid GET request";
-          $this->sendErrorResponse($error);
+            $error = "OJS Integration REST Plugin: Not a valid GET request";
+            $this->sendErrorResponse($error);
         }
 
       }
@@ -185,28 +185,27 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 
         switch ($operator) {
           case 'test': // Basic test
-          $response = array(
-            "message" => "POST test response",
-            "version" => $this->getApiVersion()
-          );
-          $this->sendJsonResponse($response);
-          break;
+            $response = array(
+              "message" => "POST test response",
+              "version" => $this->getApiVersion()
+            );
+            $this->sendJsonResponse($response);
+            break;
           case 'authorSubmit':
-          // in case author submits an article
-          $resultArray = $this->authorSubmit();
-          break;
+            // in case author submits an article
+            $resultArray = $this->authorSubmit();
+            break;
           case 'reviewerSubmit':
-          // in case a reviewer submits the article review
-          $this->reviewerSubmit($request);
-          $response = array(
-            "version" => $this->getApiVersion()
-          );
-          $this->sendJsonResponse($response);
-          break;
-
+            // in case a reviewer submits the article review
+            $this->reviewerSubmit($request);
+            $response = array(
+              "version" => $this->getApiVersion()
+            );
+            $this->sendJsonResponse($response);
+            break;
           default:
-          $error = " Not a valid request";
-          $this->sendErrorResponse($error);
+            $error = " Not a valid request";
+            $this->sendErrorResponse($error);
         }
       }
 
@@ -257,10 +256,10 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
       case 'DELETE':
       case 'GET':
       case 'POST':
-      $result = $callType;
-      break;
+        $result = $callType;
+        break;
       default:
-      $result = "";
+        $result = "";
     }
     return $result;
   }
@@ -289,7 +288,6 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
     header("HTTP/1.0 500 Internal Server Error");
     http_response_code(500);
     $response = [
-
       "error" => "internal server error",
       "errorMessage" => $errorMessage,
       "code" => "500"
@@ -395,7 +393,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
       $round = $versionInfo['round'];
       $reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
       $reviewRound = $reviewRoundDao->getReviewRound($submissionId, $stageId, $round);
-      $reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW);
+      $reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED);
       $reviewRoundDao->updateObject($reviewRound);
       $response = array(
         "version" => $this->getApiVersion()
@@ -680,7 +678,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
   }
 
   /**
-  *Takes a FW versionString and returns a stageId and round number.
+  * Takes a FW versionString and returns a stageId and round number.
   * Does the opposite of stageToVersion(...) in the parent plugin.
   */
   function versionToStage($versionString) {
@@ -762,7 +760,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
       $userGroup = $userGroupDao->getById($stageAssignment->getUserGroupId(), $submission->getContextId());
 
       // Only send notifications about reviewer comment notification to managers and editors
-      // and only send to usrs who have not received a notificcation already.
+      // and only send to users who have not received a notification already.
       if (!in_array(
         $userGroup->getRoleId(),
         array(ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR)) || in_array($userId, $receivedList)
@@ -815,8 +813,8 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
               REVIEW_ROUND_STATUS_ACCEPTED,
               REVIEW_ROUND_STATUS_DECLINED
             )
-            )
-          ) {
+          )
+        ) {
             // Editor has taken a decision in round or there are pending
             // reviews or no reviews. Delete any existing notification.
             if (!$notificationFactory->wasEmpty()) {

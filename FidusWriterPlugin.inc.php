@@ -173,7 +173,7 @@ class FidusWriterPlugin extends GenericPlugin {
   /**
   * We override the template for the submission file grid in case of a Fidus
   * based submission. If the submission is connected to a Fidus Writer instance,
-  * we instead show a login link to get to the fidus writer instance (via the
+  * we instead show a login link to get to the Fidus Writer instance (via the
   * Fidus Writer Gateway plugin).
   * @param $hookName
   * @param $args
