@@ -1,5 +1,5 @@
 {
-    "name": "ojs-fiduswriter",
+    "name": "fiduswriter/ojs-fiduswriter",
     "description": "A Open Journal Systems (OJS) plugin to connect to Fidus Writer",
     "license": "Licence.md",
     "config": {
