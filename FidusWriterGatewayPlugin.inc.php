@@ -942,7 +942,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 				$authorDao = DAORegistry::getDAO('AuthorDAO');
 				/** @var Author $author */
 				$author = $authorDao->newDataObject();
-				$author->setGiventName($firstName, $locale);
+				$author->setGivenName($firstName, $locale);
 				//$author->setMiddleName("");
 				$author->setFamilyName($lastName, $locale);
 				//$author->setSuffix("");
@@ -1007,7 +1007,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 					$user = $userDao->newDataObject();
 					$user->setUsername($username);
 					$user->setPassword(Validation::encryptCredentials($username, $password));
-					$user->setGiventName($firstName, $locale);
+					$user->setGivenName($firstName, $locale);
 					$user->setFamilyName($lastName, $locale);
 					$user->setEmail($emailAddress);
 					$user->setDateRegistered(Core::getCurrentDate());
