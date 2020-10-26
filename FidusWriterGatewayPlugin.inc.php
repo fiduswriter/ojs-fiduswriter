@@ -36,7 +36,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		$this->parentPluginName = $parentPluginName;
 	}
 
-	public function getPolicies() {
+	public function getPolicies($request) {
 		return new PolicySet(COMBINING_PERMIT_OVERRIDES);
 	}
 
@@ -350,8 +350,8 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		$submissionId = $this->getPOSTPayloadVariable("submission_id");
 		// The revision Id will be updated with every update from Fidus Writer.
 		// It represents the ID used in the Fidus Writer database.
-		$submissionDao = Application::getSubmissionDAO();
-		$locale = AppLocale::getLocale();
+		$submissionDao = DAORegistry::getDAO('SubmissionDAO');
+		$siteLocale = AppLocale::getLocale();
 		if ($submissionId === "") {
 			// This is a new submission so we create it in the database
 			$title = $this->getPOSTPayloadVariable("title");
@@ -438,7 +438,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		};
 
 		$request->getUser = function() {
-			return $user;
+			return $this->user;
 		};
 
 		$request->getRouter = function() {
@@ -498,8 +498,8 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		// Assign sub editors for that section
 		$submissionSubEditorFound = false;
 		$subEditorsDao = DAORegistry::getDAO('SubEditorsDAO');
-		$subEditors = $subEditorsDao->getBySectionId($submission->getSectionId(), $journalId);
-		foreach ($subEditors as $subEditor) {
+		$assignedSubEditors = $subEditorsDao->getBySubmissionGroupId($submission->getSectionId(), ASSOC_TYPE_SECTION, $journalId);
+		foreach ($assignedSubEditors as $subEditor) {
 			$userGroups = $userGroupDao->getByUserId($subEditor->getId(), $journalId);
 			while ($userGroup = $userGroups->next()) {
 				if ($userGroup->getRoleId() != ROLE_ID_SUB_EDITOR) continue;
@@ -581,7 +581,9 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 			$primaryAuthor = $submission->getPrimaryAuthor();
 			if (!isset($primaryAuthor)) {
 				$authors = $submission->getAuthors();
-				$primaryAuthor = $authors[0];
+				if (!empty($authors)) {
+					$primaryAuthor = $authors[0];
+				}
 			}
 			$mail->addRecipient($user->getEmail(), $user->getFullName());
 			// Add primary contact and e-mail address as specified in the journal submission settings
@@ -595,7 +597,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 				$mail->addBcc($copyAddress);
 			}
 
-			if ($user->getEmail() != $primaryAuthor->getEmail()) {
+			if (isset($primaryAuthor) && $user->getEmail() != $primaryAuthor->getEmail()) {
 				$authorMail->addRecipient($primaryAuthor->getEmail(), $primaryAuthor->getFullName());
 			}
 
@@ -605,7 +607,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 				$authorEmail = $author->getEmail();
 				// only add the author email if they have not already been added as the primary author
 				// or user creating the submission.
-				if ($authorEmail != $primaryAuthor->getEmail() && $authorEmail != $user->getEmail()) {
+				if (isset($primaryAuthor) && $authorEmail != $primaryAuthor->getEmail() && $authorEmail != $user->getEmail()) {
 					$authorMail->addRecipient($author->getEmail(), $author->getFullName());
 				}
 			}
@@ -644,9 +646,9 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 	* @return mixed
 	*/
 	function createNewSubmission($title, $abstract, $journalId, $fidusUrl, $fidusId) {
-		$locale = AppLocale::getLocale();
+		$siteLocale = AppLocale::getLocale();
 
-		$submissionDao = Application::getSubmissionDAO();
+		$submissionDao = DAORegistry::getDAO('SubmissionDAO');
 		$submission = $submissionDao->newDataObject();
 		$submission->setStatus(STATUS_QUEUED);
 		$submission->stampStatusModified();
@@ -654,8 +656,8 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		// $journalId in OJS is same as $contextId in PKP lib.
 		$submission->setContextId($journalId);
 		$submission->setDateSubmitted(Core::getCurrentDate());
-		$submission->setLocale($locale);
-		$submission->setSubject($title, $locale);
+		$submission->setLocale($siteLocale);
+		$submission->setSubject($title, $siteLocale);
 		// WORKFLOW_STAGE_ID_SUBMISSION is the stage a submission is in right
 		// when it is first submitted (== 1 in database).
 		$submission->setStageId(WORKFLOW_STAGE_ID_SUBMISSION);
@@ -664,16 +666,16 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		// to the default section ('Articles').
 		// TODO: Extend the api to select which section to submit to.
 		// https://pkp.sfu.ca/ojs/docs/userguide/2.3.3/journalManagementJournalSections.html
-		$section = $sectionDao->getByTitle("Articles", $journalId, $locale);
+		$section = $sectionDao->getByTitle("Articles", $journalId, $siteLocale);
 		if ($section !== NULL) {
 			$sectionId = $section->getId();
 		} else {
 			$sectionId = 1;
 		}
 		$submission->setData("sectionId", $sectionId);
-		$submission->setTitle($title, $locale);
-		$submission->setCleanTitle($title, $locale);
-		$submission->setAbstract($abstract, $locale);
+		$submission->setTitle($title, $siteLocale);
+		//$submission->setCleanTitle($title, $siteLocale);
+		$submission->setAbstract($abstract, $siteLocale);
 
 		// Set fidus writer related fields.
 		$submission->setData("fidusUrl", $fidusUrl);
@@ -719,7 +721,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		$versionString = $this->getPOSTPayloadVariable("version");
 		$reviewerId = $this->getPOSTPayloadVariable("user_id");
 
-		$submissionDao = Application::getSubmissionDAO();
+		$submissionDao = DAORegistry::getDAO('SubmissionDAO');
 		$submission = $submissionDao->getById($submissionId);
 		if ($submission ===null || $submission === "") {
 			throw new Exception("Error: no submission with given submissionId $submissionId exists.");
@@ -767,40 +769,40 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		$receivedList = array(); // Avoid sending twice to the same user.
 		$notificationMgr = new NotificationManager();
 
-		$mockRequest = new MockObject();
+		$request = new MockObject();
 		$userDao = DAORegistry::getDAO('UserDAO');
-		$mockRequest->user = $userDao->getById($reviewerId);
-		$mockRequest->getUser = function() {
+		$request->user = $userDao->getById($reviewerId);
+		$request->getUser = function() {
 			return $this->user;
 		};
 
-		$mockRequest->origRequest = $request;
+		$request->origRequest = $request;
 
-		$mockRequest->getContext = function() {
+		$request->getContext = function() {
 			return $this->origRequest->getContext();
 		};
 
-		$mockRequest->getSite = function() {
+		$request->getSite = function() {
 			return $this->origRequest->getSite();
 		};
 
-		$mockRequest->getRouter = function() {
+		$request->getRouter = function() {
 			return $this->origRequest->getRouter();
 		};
 
-		$mockRequest->isPathInfoEnabled = function() {
+		$request->isPathInfoEnabled = function() {
 			return $this->origRequest->isPathInfoEnabled();
 		};
 
-		$mockRequest->isRestfulUrlsEnabled = function() {
+		$request->isRestfulUrlsEnabled = function() {
 			return $this->origRequest->isRestfulUrlsEnabled();
 		};
 
-		$mockRequest->getBaseUrl = function() {
+		$request->getBaseUrl = function() {
 			return $this->origRequest->getBaseUrl();
 		};
 
-		$mockRequest->getRemoteAddr = function() {
+		$request->getRemoteAddr = function() {
 			return $this->origRequest->getRemoteAddr();
 		};
 
@@ -822,7 +824,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 
 
 				$notificationMgr->createNotification(
-					$mockRequest, $userId, NOTIFICATION_TYPE_REVIEWER_COMMENT,
+					$request, $userId, NOTIFICATION_TYPE_REVIEWER_COMMENT,
 					$submission->getContextId(), ASSOC_TYPE_REVIEW_ASSIGNMENT, $reviewAssignment->getId()
 				);
 
@@ -937,20 +939,20 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 			*/
 			function saveAuthor($articleId, $journalId, $emailAddress, $firstName, $lastName, $affiliation, $country, $authorUrl, $biography) {
 				// Set user to initial author
-				$locale = AppLocale::getLocale();
+				$siteLocale = AppLocale::getLocale();
 
 				$authorDao = DAORegistry::getDAO('AuthorDAO');
 				/** @var Author $author */
 				$author = $authorDao->newDataObject();
-				$author->setGivenName($firstName, $locale);
+				$author->setGivenName($firstName, $siteLocale);
 				//$author->setMiddleName("");
-				$author->setFamilyName($lastName, $locale);
+				$author->setFamilyName($lastName, $siteLocale);
 				//$author->setSuffix("");
-				$author->setAffiliation($affiliation, $locale);
+				$author->setAffiliation($affiliation, $siteLocale);
 				$author->setCountry($country);
 				$author->setEmail($emailAddress);
 				$author->setUrl($authorUrl);
-				$author->setBiography($biography, $locale);
+				$author->setBiography($biography, $siteLocale);
 				$author->setPrimaryContact(true);
 				$author->setIncludeInBrowse(true);
 
@@ -1007,15 +1009,17 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 					$user = $userDao->newDataObject();
 					$user->setUsername($username);
 					$user->setPassword(Validation::encryptCredentials($username, $password));
-					$user->setGivenName($firstName, $locale);
-					$user->setFamilyName($lastName, $locale);
+					$user->setGivenName($firstName, $siteLocale);
+					$user->setFamilyName($lastName, $siteLocale);
 					$user->setEmail($emailAddress);
 					$user->setDateRegistered(Core::getCurrentDate());
 
 					//this is to be added for authentication plugin in future, so that we will list it in auth_source table
 					$authDao = DAORegistry::getDAO('AuthSourceDAO');
 					$defaultAuth = $authDao->getDefaultPlugin();
-					$user->setAuthId($defaultAuth->authId);
+					if (isset($defaultAuth)) {
+						$user->setAuthId($defaultAuth->authId);
+					}
 
 					$userDao->insertObject($user);
 					$userId = $user->getId();
@@ -1085,8 +1089,12 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 				$fwPlugin = $this->getFidusWriterPlugin();
 				$fidusId = $fwPlugin->getSubmissionSetting($submissionId, 'fidusId');
 				$fidusUrl = $fwPlugin->getSubmissionSetting($submissionId, 'fidusUrl');
+				if ($fidusUrl === false or $fidusId === false) {
+					// $fidusUrl or $fidusId could not be retrieved.
+					return false;
+				}
 				$user = $this->getUserFromSession();
-				$submissionDao = Application::getSubmissionDAO();
+				$submissionDao = DAORegistry::getDAO('SubmissionDAO');
 				$submission = $submissionDao->getById($submissionId);
 				$journalId = $submission->getContextId();
 				// Editor users will fallback to being logged in as the editor user on the

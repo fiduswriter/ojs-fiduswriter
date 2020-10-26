@@ -65,13 +65,11 @@ In the section "Custom views" click on "Register journal". Enter the URL and API
 
 ## Credits
 
-This plugin has been developed by the [Opening Scolarly Communications in the Social Sciences (OSCOSS)](http://www.gesis.org/?id=10714) project, financed by the German Research Foundation (DFG) and executed by the University of Bonn and GESIS – Leibniz Institute for the Social Sciences.
-
-Lead Developer: [Afshin Sadeghi](https://github.com/sadeghiafshin)
+This plugin was originally developed by the [Opening Scolarly Communications in the Social Sciences (OSCOSS)](http://www.gesis.org/?id=10714) project, financed by the German Research Foundation (DFG) and executed by the University of Bonn and GESIS – Leibniz Institute for the Social Sciences under lead developer: [Afshin Sadeghi](https://github.com/sadeghiafshin)
 
 ## License
 
-This software is released under the the GNU General Public License v2.0.
+This software is released under the the GNU General Public License v3.0.
 
 See the file License.md included with this distribution for the terms of this license.
 

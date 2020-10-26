@@ -1,23 +1,21 @@
 {**
 	* plugins/generic/fidusWriter/settingsForm.tpl
 	*
-	* Based on code of:
+	* Copyright (c) 2020 Johannes Wilm
 	* Copyright (c) 2013 Simon Fraser University Library
 	* Copyright (c) 2003-2013 John Willinsky
-	* Distributed under the GNU GPL v2. For full terms see
-	* https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
-	*
+	* Distributed under the GNU GPL v3.
 	* FidusWriter plugin settings
 	*
 	*}
-	<div id="fidusWriterSettings">
-		<div id="description">{translate key="plugins.generic.fidusWriter.description"}</div>
-		<h3>{translate key="plugins.generic.fidusWriter.settings"}</h3>
+<div id="fidusWriterSettings">
+	<div id="description">{translate key="plugins.generic.fidusWriter.description"}</div>
+	<h3>{translate key="plugins.generic.fidusWriter.settings"}</h3>
 
 
-		<script type="text/javascript">
-		$(function() {ldelim}
-		// Attach the form handler.
+	<script type="text/javascript">
+	  $(function() {ldelim}
+	  // Attach the form handler.
 		$('#fidusWriterSettingsForm').pkpHandler('$.pkp.controllers.form.AjaxFormHandler');
 		{rdelim});
 	</script>

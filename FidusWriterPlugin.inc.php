@@ -155,8 +155,11 @@ class FidusWriterPlugin extends GenericPlugin {
 	* @return bool
 	*/
 	function getSubmissionSetting($submissionId, $settingName) {
-		$submissionDao = Application::getSubmissionDAO();
+		$submissionDao = DAORegistry::getDAO('SubmissionDAO');
 		$submission = $submissionDao->getById($submissionId);
+		if (!$submission) {
+			return false;
+		}
 		return $submission->getData($settingName);
 	}
 
@@ -284,7 +287,10 @@ class FidusWriterPlugin extends GenericPlugin {
 		$reviewMethod = $row[3];
 
 		$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
-
+		if ($fidusUrl === false) {
+			// $fidusUrl could not be retrieved.
+			return false;
+		}
 		$url = false;
 		$dataArray = [
 			'user_id' => $reviewerId,
@@ -346,6 +352,12 @@ class FidusWriterPlugin extends GenericPlugin {
 		];
 		// Then send the email address of reviewer to Fidus Writer.
 		$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
+
+		if ($fidusUrl === false) {
+			// $fidusUrl could not be retrieved.
+			return false;
+		}
+
 		$url = $fidusUrl. '/api/ojs/remove_reviewer/' . $fidusId . '/' . $versionString . '/';
 		$this->sendPostRequest($url, $dataArray);
 		return false;
@@ -365,7 +377,7 @@ class FidusWriterPlugin extends GenericPlugin {
 		$round = intval($row[2]);
 
 		$fidusId = $this->getSubmissionSetting($submissionId, 'fidusId');
-		if ($fidusId == false) {
+		if ($fidusId === false) {
 			// Not connected to Fidus Writer
 			return false;
 		}
@@ -406,6 +418,12 @@ class FidusWriterPlugin extends GenericPlugin {
 		];
 
 		$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
+
+		if ($fidusUrl === false) {
+			// $fidusUrl could not be retrieved.
+			return false;
+		}
+
 		$url = $fidusUrl . '/api/ojs/create_copy/' . $fidusId . '/';
 		$this->sendPostRequest($url, $dataArray);
 
@@ -473,6 +491,10 @@ class FidusWriterPlugin extends GenericPlugin {
 			];
 
 			$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
+			if ($fidusUrl === false) {
+				// $fidusUrl could not be retrieved.
+				return false;
+			}
 			$url = $fidusUrl . '/api/ojs/create_copy/' . $fidusId . '/';
 			$this->sendPostRequest($url, $dataArray);
 
