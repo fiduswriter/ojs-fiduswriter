@@ -351,7 +351,6 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		// The revision Id will be updated with every update from Fidus Writer.
 		// It represents the ID used in the Fidus Writer database.
 		$submissionDao = DAORegistry::getDAO('SubmissionDAO');
-		$siteLocale = AppLocale::getLocale();
 		if ($submissionId === "") {
 			// This is a new submission so we create it in the database
 			$title = $this->getPOSTPayloadVariable("title");
@@ -646,42 +645,65 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 	* @return mixed
 	*/
 	function createNewSubmission($title, $abstract, $journalId, $fidusUrl, $fidusId) {
-		$siteLocale = AppLocale::getLocale();
+		$locale = AppLocale::getLocale();
 
 		$submissionDao = DAORegistry::getDAO('SubmissionDAO');
 		$submission = $submissionDao->newDataObject();
-		$submission->setStatus(STATUS_QUEUED);
-		$submission->stampStatusModified();
-		$submission->setSubmissionProgress(0);
 		// $journalId in OJS is same as $contextId in PKP lib.
 		$submission->setContextId($journalId);
-		$submission->setDateSubmitted(Core::getCurrentDate());
-		$submission->setLocale($siteLocale);
-		$submission->setSubject($title, $siteLocale);
+	  $submission->stampLastActivity();
+		$submission->stampModified();
+		$submission->setSubmissionProgress(0);
+
 		// WORKFLOW_STAGE_ID_SUBMISSION is the stage a submission is in right
 		// when it is first submitted (== 1 in database).
+		$submission->setStageId(WORKFLOW_STAGE_ID_SUBMISSION);
+
+		$submission->setData('dateSubmitted', Core::getCurrentDate());
+		$submission->setLocale($locale);
+		$submission->setSubject($title, $locale);
+		$submission->setTitle($title, $locale);
+
 		$submission->setStageId(WORKFLOW_STAGE_ID_SUBMISSION);
 		$sectionDao = Application::getSectionDAO();
 		// Sections are different parts of a journal, we only allow submission
 		// to the default section ('Articles').
 		// TODO: Extend the api to select which section to submit to.
 		// https://pkp.sfu.ca/ojs/docs/userguide/2.3.3/journalManagementJournalSections.html
-		$section = $sectionDao->getByTitle("Articles", $journalId, $siteLocale);
+		$section = $sectionDao->getByTitle("Articles", $journalId, $locale);
 		if ($section !== NULL) {
 			$sectionId = $section->getId();
 		} else {
 			$sectionId = 1;
 		}
+		// Insert the submission
+		$submissionId = $submissionDao->insertObject($submission);
+		$submission = $submissionDao->getById($submissionId);
+
+		// Create a publication
+		$publication = new Publication();
+		$publication->setData('submissionId', $submissionId);
+		$publication->setData('locale', $locale);
+		$publication->setData('language', PKPString::substr($locale, 0, 2));
+		$publication->setData('status', STATUS_QUEUED);
+		$publication->setData('version', 1);
+		$publication->setData('abstract', $abstract, $locale);
+		$submission->setData('title', $title, $locale);
+
+		$publication->stampModified();
+		$publicationDao = DAORegistry::getDAO('PublicationDAO'); /* @var $publicationDao PublicationDAO */
+		$publicationId = $publicationDao->insertObject($publication);
+		$publication = $publicationDao->getById($publicationId);
+		$submission->setData('currentPublicationId', $publicationId);
 		$submission->setData("sectionId", $sectionId);
-		$submission->setTitle($title, $siteLocale);
-		//$submission->setCleanTitle($title, $siteLocale);
-		$submission->setAbstract($abstract, $siteLocale);
+
+
 
 		// Set fidus writer related fields.
 		$submission->setData("fidusUrl", $fidusUrl);
 		$submission->setData("fidusId", $fidusId);
-		// Insert the submission
-		$submissionDao->insertObject($submission);
+		$submissionDao->updateObject($submission);
+		$submission = $submissionDao->getById($submissionId);
 
 		return $submission;
 	}
@@ -939,20 +961,20 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 			*/
 			function saveAuthor($articleId, $journalId, $emailAddress, $firstName, $lastName, $affiliation, $country, $authorUrl, $biography) {
 				// Set user to initial author
-				$siteLocale = AppLocale::getLocale();
+				$locale = AppLocale::getLocale();
 
 				$authorDao = DAORegistry::getDAO('AuthorDAO');
 				/** @var Author $author */
 				$author = $authorDao->newDataObject();
-				$author->setGivenName($firstName, $siteLocale);
+				$author->setGivenName($firstName, $locale);
 				//$author->setMiddleName("");
-				$author->setFamilyName($lastName, $siteLocale);
+				$author->setFamilyName($lastName, $locale);
 				//$author->setSuffix("");
-				$author->setAffiliation($affiliation, $siteLocale);
+				$author->setAffiliation($affiliation, $locale);
 				$author->setCountry($country);
 				$author->setEmail($emailAddress);
 				$author->setUrl($authorUrl);
-				$author->setBiography($biography, $siteLocale);
+				$author->setBiography($biography, $locale);
 				$author->setPrimaryContact(true);
 				$author->setIncludeInBrowse(true);
 
@@ -1009,8 +1031,9 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 					$user = $userDao->newDataObject();
 					$user->setUsername($username);
 					$user->setPassword(Validation::encryptCredentials($username, $password));
-					$user->setGivenName($firstName, $siteLocale);
-					$user->setFamilyName($lastName, $siteLocale);
+					$locale = AppLocale::getLocale();
+					$user->setGivenName($firstName, $locale);
+					$user->setFamilyName($lastName, $locale);
 					$user->setEmail($emailAddress);
 					$user->setDateRegistered(Core::getCurrentDate());
 
