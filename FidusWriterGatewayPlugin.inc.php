@@ -10,18 +10,6 @@
 */
 
 import('lib.pkp.classes.security.authorization.PolicySet');
-
-class MockObject extends stdClass {
-	// Used to create request mock object, to emulate real request. See below.
-	public function __call($closure, $args) {
-		return call_user_func_array($this->{$closure}->bindTo($this),$args);
-	}
-
-	public function __toString() {
-		return call_user_func($this->{"__toString"}->bindTo($this));
-	}
-}
-
 import('lib.pkp.classes.plugins.GatewayPlugin');
 
 class FidusWriterGatewayPlugin extends GatewayPlugin {
@@ -36,7 +24,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		$this->parentPluginName = $parentPluginName;
 	}
 
-	public function getPolicies() {
+	public function getPolicies($request) {
 		return new PolicySet(COMBINING_PERMIT_OVERRIDES);
 	}
 
@@ -351,7 +339,6 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		// The revision Id will be updated with every update from Fidus Writer.
 		// It represents the ID used in the Fidus Writer database.
 		$submissionDao = Application::getSubmissionDAO();
-		$locale = AppLocale::getLocale();
 		if ($submissionId === "") {
 			// This is a new submission so we create it in the database
 			$title = $this->getPOSTPayloadVariable("title");
@@ -407,7 +394,6 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 			);
 			$this->sendJsonResponse($response);
 		}
-		return;
 	}
 
 
@@ -426,45 +412,9 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		// Create a fake request object as the real request does not contain the required data.
 		// $request is required in the following code which comes from different parts of OJS.
 
-		$request = new MockObject();
-		$request->journalId = $journalId;
-		$request->user = $user;
 		$application = PKPApplication::getApplication();
-		$request->origRequest = $application->getRequest();
-
-		$request->getContext = function() {
-			$contextDao = Application::getContextDAO();
-			return $contextDao->getById($this->journalId);
-		};
-
-		$request->getUser = function() {
-			return $user;
-		};
-
-		$request->getRouter = function() {
-			return $this->origRequest->getRouter();
-		};
-
-		$request->isPathInfoEnabled = function() {
-			return $this->origRequest->isPathInfoEnabled();
-		};
-
-		$request->isRestfulUrlsEnabled = function() {
-			return $this->origRequest->isRestfulUrlsEnabled();
-		};
-
-		$request->getBaseUrl = function() {
-			return $this->origRequest->getBaseUrl();
-		};
-
-		$request->getRemoteAddr = function() {
-			return $this->origRequest->getRemoteAddr();
-		};
-
-		$request->getSite = function() {
-			$siteDao = DAORegistry::getDAO('SiteDAO');
-			return $siteDao->getSite();
-		};
+		$this->import('classes.NotificationRequest');
+		$request = NotificationRequest::create($application->getRequest(), $user, $journalId);
 
 		// The following has been adapted from PKPSubmissionSubmitStep4Form
 
@@ -492,8 +442,6 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		if ($authorUserGroupId) {
 			$stageAssignmentDao->build($submissionId, $authorUserGroupId, $userId);
 		}
-
-
 
 		// Assign sub editors for that section
 		$submissionSubEditorFound = false;
@@ -655,7 +603,8 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		$submission->setContextId($journalId);
 		$submission->setDateSubmitted(Core::getCurrentDate());
 		$submission->setLocale($locale);
-		$submission->setSubject($title, $locale);
+		// Deprecated function setSubject
+		//$submission->setSubject($title, $locale);
 		// WORKFLOW_STAGE_ID_SUBMISSION is the stage a submission is in right
 		// when it is first submitted (== 1 in database).
 		$submission->setStageId(WORKFLOW_STAGE_ID_SUBMISSION);
@@ -767,42 +716,11 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		$receivedList = array(); // Avoid sending twice to the same user.
 		$notificationMgr = new NotificationManager();
 
-		$mockRequest = new MockObject();
 		$userDao = DAORegistry::getDAO('UserDAO');
-		$mockRequest->user = $userDao->getById($reviewerId);
-		$mockRequest->getUser = function() {
-			return $this->user;
-		};
+		$user = $userDao->getById($reviewerId);
 
-		$mockRequest->origRequest = $request;
-
-		$mockRequest->getContext = function() {
-			return $this->origRequest->getContext();
-		};
-
-		$mockRequest->getSite = function() {
-			return $this->origRequest->getSite();
-		};
-
-		$mockRequest->getRouter = function() {
-			return $this->origRequest->getRouter();
-		};
-
-		$mockRequest->isPathInfoEnabled = function() {
-			return $this->origRequest->isPathInfoEnabled();
-		};
-
-		$mockRequest->isRestfulUrlsEnabled = function() {
-			return $this->origRequest->isRestfulUrlsEnabled();
-		};
-
-		$mockRequest->getBaseUrl = function() {
-			return $this->origRequest->getBaseUrl();
-		};
-
-		$mockRequest->getRemoteAddr = function() {
-			return $this->origRequest->getRemoteAddr();
-		};
+		$this->import('classes.NotificationRequest');
+		$mockRequest = NotificationRequest::create($request, $user);
 
 		while ($stageAssignment = $stageAssignments->next()) {
 			$userId = $stageAssignment->getUserId();
@@ -1000,6 +918,8 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 					$userId = $user->getId();
 
 				} else {
+					$locale = AppLocale::getLocale();
+
 					// User does not have an account. Create one and enroll as author.
 					$username = Validation::suggestUsername($firstName, $lastName);
 					$password = Validation::generatePassword();
@@ -1020,6 +940,19 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 					$userDao->insertObject($user);
 					$userId = $user->getId();
 
+					// Send notification to the Fiduswriter user about the new user account and reset password
+					$request = PKPApplication::getApplication()->getRequest();
+					$hash = Validation::generatePasswordResetHash($user->getId());
+					import('lib.pkp.classes.mail.MailTemplate');
+					$mail = new MailTemplate('PASSWORD_RESET_CONFIRM');
+					$site = $request->getSite();
+					$mail->setReplyTo($site->getLocalizedContactEmail(), $site->getLocalizedContactName());
+					$mail->assignParams(array(
+						'url' => $request->url(null, 'login', 'resetPassword', $user->getUsername(), array('confirm' => $hash)),
+						'siteTitle' => $site->getLocalizedTitle()
+					));
+					$mail->addRecipient($user->getEmail(), $user->getFullName());
+					$mail->send();
 				}
 				return $user;
 			}
