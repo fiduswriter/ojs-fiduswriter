@@ -203,7 +203,7 @@ class FidusWriterPlugin extends GenericPlugin {
 					// entire grid with a link to the file in Fidus Writer. This way
 					// there are no surprises of users accidentally trying to add
 					// more files or similar.
-					$stageId =  intval($_GET['stageId']);
+					$stageId =  isset($_GET['stageId']) ? intval($_GET['stageId']) : 0;
 					$round = 0;
 					if (isset($_GET['reviewRoundId'])) {
 						$reviewRoundId = $_GET['reviewRoundId'];
