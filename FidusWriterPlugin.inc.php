@@ -610,18 +610,31 @@ class FidusWriterPlugin extends GenericPlugin {
 	* @return string
 	*/
 	function sendRequest($requestType, $url, $dataArray) {
-		$options = array(
-			'http' => array(
-				'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-				'method' => $requestType,
-				'content' => http_build_query($dataArray)
-			)
-		);
-		$context = stream_context_create($options);
-		$result = file_get_contents($url, false, $context);
-		if ($result === false) { /* Handle error */
+		$curl = curl_init();
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl,CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($curl,CURLOPT_SSL_VERIFYHOST, false);
+
+		if ("POST" === $requestType) {
+			curl_setopt($curl, CURLOPT_URL, $url);
+			curl_setopt($curl,CURLOPT_POST, true);
+			curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($dataArray));
+		} else {
+			$query = parse_url($url, PHP_URL_QUERY);
+			$url .= $query ? '&' : '?';
+			$url .= http_build_query($dataArray);
+			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'GET');
+			curl_setopt($curl, CURLOPT_URL, $url);
+		}
+
+		$result = curl_exec($curl);
+		curl_close($curl);
+
+		/* Handle error */
+		if (!$result) {
 			echo $result;
 		}
+
 		return $result;
 	}
 
