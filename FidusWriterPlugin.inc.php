@@ -27,17 +27,28 @@ class FidusWriterPlugin extends GenericPlugin {
 			*/
 			if ($this->getEnabled()) {
 				HookRegistry::register('PluginRegistry::loadCategory', array($this, 'callbackLoadCategory'));
+				// Register DAO for Fiduswriter Revisions
+				$this->import('FidusWriterReviewRoundRevisionDAO');
+				$reviewRoundRevisionDao = new FidusWriterReviewRoundRevisionDAO();
+				DAORegistry::registerDAO('FidusWriterReviewRoundRevisionDAO', $reviewRoundRevisionDao);
 			}
 			HookRegistry::register('reviewassignmentdao::_updateobject', array($this, 'callbackUpdateReviewAssignment'));
 			HookRegistry::register('reviewassignmentdao::_deletebyid', array($this, 'callbackRemoveReviewer'));
 			HookRegistry::register('reviewrounddao::_insertobject', array($this, 'callbackNewReviewRound'));
-			HookRegistry::register('reviewrounddao::_updatestatus', array($this, 'callbackUpdateReviewRound'));
 			HookRegistry::register('TemplateManager::fetch', array($this, 'templateFetchCallback'));
 			// Add fields fidusId and fidusUrl to submissions
 			HookRegistry::register('articledao::getAdditionalFieldNames', array($this, 'callbackAdditionalFieldNames'));
+			HookRegistry::register('LoadComponentHandler', array($this, 'callbackLoadHandler'));
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Get the filename of the ADODB schema for this plugin.
+	 */
+	function getInstallSchemaFile() {
+		return $this->getPluginPath() . '/' . 'schema.xml';
 	}
 
 	// BEGIN STANDARD PLUGIN FUNCTIONS
@@ -173,6 +184,31 @@ class FidusWriterPlugin extends GenericPlugin {
 	}
 
 	/**
+	 * If the loaded component is for creating the revision in Fiduswriter, set the custom callback
+	 * @param $hookName
+	 * @param $args
+	 * @return bool
+	 */
+	function callbackLoadHandler($hookName, $args) {
+		$revisionHandlerKeys = [
+			'grid.files.review.SelectableReviewRevisionsGridHandler',
+			'grid.files.review.WorkflowReviewRevisionsGridHandler'
+		];
+
+		if (
+			isset($args[0], $args[1]) &&
+			in_array($args[0], $revisionHandlerKeys) &&
+			'showCreateFidusRevisionForm' === $args[1]
+		) {
+			$args[0] = "plugins.generic.fidusWriter.FidusWriterRevisionHandler";
+			import($args[0]);
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	* We override the template for the submission file grid in case of a Fidus
 	* based submission. If the submission is connected to a Fidus Writer instance,
 	* we instead show a login link to get to the fidus writer instance (via the
@@ -182,11 +218,22 @@ class FidusWriterPlugin extends GenericPlugin {
 	* @return bool
 	*/
 	public function templateFetchCallback($hookName, $args) {
+		/**
+		 * @var TemplateManager $templateManager
+		 */
 		$templateManager = $args[0];
 		$templateName = $args[1];
+		$completedReviewRoundStatus = [
+			REVIEW_ROUND_STATUS_REVIEWS_COMPLETED,
+			REVIEW_ROUND_STATUS_REVISIONS_REQUESTED,
+			REVIEW_ROUND_STATUS_ACCEPTED,
+			REVIEW_ROUND_STATUS_DECLINED
+		];
+
 		if ($templateName == 'controllers/grid/grid.tpl') {
 			$grid = $templateManager->get_template_vars('grid');
 			$title = $grid->getTitle();
+
 			if (
 				$title==='submission.submit.submissionFiles' ||
 				$title==='reviewer.submission.reviewFiles' ||
@@ -196,6 +243,7 @@ class FidusWriterPlugin extends GenericPlugin {
 				// but the submissionId is part of the URL of this page.
 				$submissionId =  intval($_GET['submissionId']);
 				$fidusId = $this->getSubmissionSetting($submissionId, 'fidusId');
+
 				if ($fidusId != false) {
 					// This submission is linked to a Fidus Writer instance, so present
 					// link rather the file overview.
@@ -205,58 +253,88 @@ class FidusWriterPlugin extends GenericPlugin {
 					// more files or similar.
 					$stageId =  isset($_GET['stageId']) ? intval($_GET['stageId']) : 0;
 					$round = 0;
+
+					/**
+					 * @var ReviewRound $reviewRound
+					 */
 					if (isset($_GET['reviewRoundId'])) {
 						$reviewRoundId = $_GET['reviewRoundId'];
 						$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
 						$reviewRound = $reviewRoundDao->getById($reviewRoundId);
 						$round = $reviewRound->getRound();
-						$status = $reviewRound->getStatus();
-						if(
-							$status != REVIEW_ROUND_STATUS_REVISIONS_REQUESTED &&
-							$status != REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW &&
-							$status != REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED &&
-							$title === 'editor.submission.revisions'
-						) {
-							// The review round has not reached a status where there
-							// would be any author to show in terms of upload files.
-							// So we show an empty author field.
-							$result =& $args[4];
-							$result = '
-							<div class="pkp_controllers_grid">
-							<div class="header">
-							<h4>' . __($title) . '</h4>
-							</div>
-							<div style="text-align: center;">
-							' . __('grid.noItems') . '
-							</div>
-							</div>';
-							return true;
-						}
 					}
-					$revisionType = ($title==='editor.submission.revisions' ? 'Author' : 'Reviewer');
-					$versionString = $this->stageToVersion($stageId, $round, $revisionType);
 
-					$result =& $args[4];
-					$result = '
-					<div class="pkp_controllers_grid">
-					<div class="header">
-					<h4>' . __($title) . '</h4>
-					</div>
-					<div style="text-align: center;">
-					<a
-					href="' . $this->getGatewayPluginUrl() . '/documentReview?submissionId=' . $submissionId . '&stageId=' . $stageId . '&version=' . $versionString . '"
-					target="FidusWriter"
-					>
-					' . __('plugins.generic.fidusWriter.linkText') . '
-					</a>
-					</div>
-					</div>';
-					return true;
+					if ($title === 'editor.submission.revisions') {
+						// Revisions
+						if (isset($reviewRound)) {
+							$status = $reviewRound->getStatus();
+							$reviewRoundRevisionDao = DAORegistry::getDAO('FidusWriterReviewRoundRevisionDAO');
+							$reviewRoundRevision = $reviewRoundRevisionDao->getRoundRevision($reviewRound->getId());
+							if (
+								$reviewRoundRevision instanceof DataObject &&
+								!empty($reviewRoundRevision->getData('revision_url'))
+							) {
+								// Show link to revision
+								$revisionUrl = $reviewRoundRevision->getData('revision_url');
+								$templateManager->assign('revisionUrl', $revisionUrl);
+							} else if (in_array($status, $completedReviewRoundStatus)) {
+								// If review is completed, allow editor to create revision
+								import('lib.pkp.classes.linkAction.request.AjaxModal');
+								$request = Registry::get('request');
+								$action = new LinkAction(
+									'createFidusRevision',
+									new AjaxModal(
+										$request->getRouter()->url($request, null, null, 'showCreateFidusRevisionForm', null, [
+											'review_round_id' => $reviewRound->getId(),
+											'old_version' => $this->stageToVersion($stageId, $round, 'Reviewer'),
+											'new_version' => $this->stageToVersion($stageId, $round, 'Author'),
+											'key' => $this->getApiKey(),
+										]),
+										__('plugins.generic.fidusWriter.createRevision'),
+										'modal_add_item'
+									),
+									__('plugins.generic.fidusWriter.createRevision'),
+									'add_item'
+								);
+								$templateManager->assign('createRevisionAction', $action);
+							}
+						}
+
+						$result =& $args[4];
+						$result = $templateManager->fetch(
+							$this->getTemplateResource('revisions.tpl'),
+							$args[2],
+							$args[3],
+							null
+						);
+
+						return true;
+					} else {
+						// Submissions
+						$versionString = $this->stageToVersion($stageId, $round, 'Reviewer');
+						$openInFidusUrl = $this->getGatewayPluginUrl() . '/documentReview?';
+						$openInFidusUrl .= http_build_query([
+							'submissionId' => $submissionId,
+							'stageId' => $stageId,
+							'version' => $versionString
+						]);
+
+						$templateManager->assign('openInFidusUrl', $openInFidusUrl);
+						$result =& $args[4];
+						$result = $templateManager->fetch(
+							$this->getTemplateResource('submissionFiles.tpl'),
+							$args[2],
+							$args[3],
+							null
+						);
+
+						return true;
+					}
 				}
-
 			}
-
 		}
+
+		return false;
 	}
 
 	/**
@@ -408,75 +486,6 @@ class FidusWriterPlugin extends GenericPlugin {
 		$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
 		$url = $fidusUrl . '/api/ojs/create_copy/' . $fidusId . '/';
 		$this->sendPostRequest($url, $dataArray);
-
-		return false;
-	}
-
-	/**
-	* Creates new SubmissionRevision in Fidus Writer if the review round is
-	* about to let the author post a revised document.
-	* @param $hookname
-	* @param $args
-	*/
-	function callbackUpdateReviewRound($hookname, $args) {
-
-		$row =& $args[1];
-		$reviewRoundId = intval($row[1]);
-		$newStatus = intval($row[0]);
-
-		$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
-		$reviewRound = $reviewRoundDao->getById($reviewRoundId);
-
-		$submissionId = $reviewRound->getSubmissionId();
-		$fidusId = $this->getSubmissionSetting($submissionId, 'fidusId');
-		if ($fidusId == false) {
-			// Not connected to Fidus Writer
-			return false;
-		}
-
-		$oldStatus = $reviewRound->getStatus();
-
-		// Status codes for which just the reviewer document is required.
-		$reviewerStates = array(
-			REVIEW_ROUND_STATUS_PENDING_REVIEWERS,
-			REVIEW_ROUND_STATUS_PENDING_REVIEWS,
-			REVIEW_ROUND_STATUS_REVIEWS_READY,
-			REVIEW_ROUND_STATUS_REVIEWS_COMPLETED
-		);
-
-		// Status codes for which there will both an author and a reviewer
-		// document.
-		$authorStates = array(
-			REVIEW_ROUND_STATUS_REVISIONS_REQUESTED,
-			REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW,
-			REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED,
-			REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL,
-			REVIEW_ROUND_STATUS_ACCEPTED,
-			REVIEW_ROUND_STATUS_DECLINED
-		);
-
-
-		if (
-			in_array($oldStatus, $reviewerStates) &&
-			in_array($newStatus, $authorStates)
-		) {
-			// We need to create the author SubmissionRevision for the round.
-			$stageId = $reviewRound->getStageId();
-			$round = $reviewRound->getRound();
-			$oldVersionString = $this->stageToVersion($stageId, $round, 'Reviewer');
-			$newVersionString = $this->stageToVersion($stageId, $round, 'Author');
-
-			$dataArray = [
-				'old_version' => $oldVersionString,
-				'new_version' => $newVersionString,
-				'key' => $this->getApiKey(), //shared key between OJS and Editor software
-			];
-
-			$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
-			$url = $fidusUrl . '/api/ojs/create_copy/' . $fidusId . '/';
-			$this->sendPostRequest($url, $dataArray);
-
-		}
 
 		return false;
 	}

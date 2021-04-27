@@ -1,123 +1,138 @@
 <?php
 
 /**
-* Copyright (c) 2015-2017 Afshin Sadehghi
-* Copyright (c) 2017 Firas Kassawat
-* Copyright (c) 2016-2018 Johannes Wilm
-* Copyright (c) 2014-2017 Simon Fraser University
-* Copyright (c) 2000-2017 John Willinsky
-* License: GNU GPL v2. See LICENSE.md for details.
-*/
+ * Copyright (c) 2015-2017 Afshin Sadehghi
+ * Copyright (c) 2017 Firas Kassawat
+ * Copyright (c) 2016-2018 Johannes Wilm
+ * Copyright (c) 2014-2017 Simon Fraser University
+ * Copyright (c) 2000-2017 John Willinsky
+ * License: GNU GPL v2. See LICENSE.md for details.
+ */
 
 import('lib.pkp.classes.security.authorization.PolicySet');
 import('lib.pkp.classes.plugins.GatewayPlugin');
 
-class FidusWriterGatewayPlugin extends GatewayPlugin {
+class FidusWriterGatewayPlugin extends GatewayPlugin
+{
 
 	// BEGIN STANDARD PLUGIN FUNCTIONS
 
 	/** @var string Name of parent plugin */
 	public $parentPluginName;
 
-	function __construct($parentPluginName) {
+	function __construct($parentPluginName)
+	{
 		parent::__construct();
 		$this->parentPluginName = $parentPluginName;
 	}
 
-	public function getPolicies($request) {
+	public function getPolicies($request)
+	{
 		return new PolicySet(COMBINING_PERMIT_OVERRIDES);
 	}
 
 	/**
-	* Hide this plugin from the management interface (it's subsidiary)
-	*/
-	public function getHideManagement() {
+	 * Hide this plugin from the management interface (it's subsidiary)
+	 */
+	public function getHideManagement()
+	{
 		return true;
 	}
 
 	/**
-	* Get the name of this plugin.
-	* @return String name of plugin
-	*/
-	public function getName() {
+	 * Get the name of this plugin.
+	 * @return String name of plugin
+	 */
+	public function getName()
+	{
 		return 'FidusWriterGatewayPlugin';
 	}
 
-	public function getDisplayName() {
+	public function getDisplayName()
+	{
 		return __('plugins.generic.fidusWriter.displayName');
 	}
 
-	public function getDescription() {
+	public function getDescription()
+	{
 		return __('plugins.generic.fidusWriter.description');
 	}
 
 	/**
-	* Get the Fidus Writer plugin
-	* @return FidusWriterPlugin
-	*/
-	function getFidusWriterPlugin() {
+	 * Get the Fidus Writer plugin
+	 * @return FidusWriterPlugin
+	 */
+	function getFidusWriterPlugin()
+	{
 		return PluginRegistry::getPlugin('generic', $this->parentPluginName);
 	}
 
 	/**
-	* Override the builtin to get the correct plugin path.
-	*/
-	public function getPluginPath() {
+	 * Override the builtin to get the correct plugin path.
+	 */
+	public function getPluginPath()
+	{
 		return $this->getFidusWriterPlugin()->getPluginPath();
 	}
 
 	/**
-	* Store the path value in the parent plugin so that it is accessible from
-	* both.
-	*/
-	public function getPluginUrl() {
+	 * Store the path value in the parent plugin so that it is accessible from
+	 * both.
+	 */
+	public function getPluginUrl()
+	{
 		return $this->getFidusWriterPlugin()->getGatewayPluginUrl();
 	}
 
 	/**
-	* Override the builtin to get the correct template path.
-	* @return string
-	*/
-	public function getTemplatePath($inCore = false) {
+	 * Override the builtin to get the correct template path.
+	 * @return string
+	 */
+	public function getTemplatePath($inCore = false)
+	{
 		return $this->getFidusWriterPlugin()->getTemplatePath($inCore);
 	}
 
 	/**
-	* Get whether or not this plugin is enabled. (Should always return true, as the
-	* parent plugin will take care of loading this one when needed)
-	* @return boolean
-	*/
-	public function getEnabled() {
+	 * Get whether or not this plugin is enabled. (Should always return true, as the
+	 * parent plugin will take care of loading this one when needed)
+	 * @return boolean
+	 */
+	public function getEnabled()
+	{
 		return $this->getFidusWriterPlugin()->getEnabled();
 	}
 
 	/**
-	* @see Plugin::isSitePlugin()
-	*/
-	function isSitePlugin() {
+	 * @see Plugin::isSitePlugin()
+	 */
+	function isSitePlugin()
+	{
 		return true;
 	}
 
 	// END STANDARD PLUGIN FUNCTIONS
 
-	public function getApiKey() {
+	public function getApiKey()
+	{
 		return $this->getFidusWriterPlugin()->getApiKey();
 	}
 
 
-	public function getApiVersion() {
+	public function getApiVersion()
+	{
 		return "1.0";
 	}
 
 
-
 	/**
-	* Handle all requests for this plugin.
-	* @param $args array
-	* @param $request PKPRequest Request object
-	* @return bool
-	*/
-	public function fetch($args, $request) {
+	 * Handle all requests for this plugin.
+	 * @param $args array
+	 * @param $request PKPRequest Request object
+	 * @return bool
+	 */
+	public function fetch($args, $request)
+	{
 
 		if (!$this->getEnabled()) {
 			return false;
@@ -230,10 +245,11 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 
 
 	/**
-	* @param $varName
-	* @return string
-	*/
-	function getPOSTPayloadVariable($varName) {
+	 * @param $varName
+	 * @return string
+	 */
+	function getPOSTPayloadVariable($varName)
+	{
 		if (isset($_POST[$varName])) {
 			return $_POST[$varName];
 		}
@@ -241,32 +257,34 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 	}
 
 	/**
-	* @return string
-	*/
-	function getRESTRequestType() {
+	 * @return string
+	 */
+	function getRESTRequestType()
+	{
 		$callType = $_SERVER['REQUEST_METHOD'];
 		switch ($callType) {
 			case 'PUT':
 			case 'DELETE':
 			case 'GET':
 			case 'POST':
-			$result = $callType;
-			break;
+				$result = $callType;
+				break;
 			default:
-			$result = "";
+				$result = "";
 		}
 		return $result;
 	}
 
 	/**
-	* @param array $response
-	*/
-	function sendJsonResponse($response) {
+	 * @param array $response
+	 */
+	function sendJsonResponse($response)
+	{
 		header("Content-Type: application/json;charset=utf-8");
 		http_response_code(200);
 		echo json_encode($response);
 		header('Connection: close');
-		header('Content-Length: '.ob_get_length());
+		header('Content-Length: ' . ob_get_length());
 		ob_end_flush();
 		ob_flush();
 		flush();
@@ -274,11 +292,12 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 	}
 
 	/**
-	* Display an error message and exit
-	* @param $errorMessage
-	* @return string
-	*/
-	public function sendErrorResponse($errorMessage) {
+	 * Display an error message and exit
+	 * @param $errorMessage
+	 * @return string
+	 */
+	public function sendErrorResponse($errorMessage)
+	{
 		header("HTTP/1.0 500 Internal Server Error");
 		http_response_code(500);
 		$response = [
@@ -290,7 +309,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		echo json_encode($response);
 
 		header('Connection: close');
-		header('Content-Length: '.ob_get_length());
+		header('Content-Length: ' . ob_get_length());
 		ob_end_flush();
 		ob_flush();
 		flush();
@@ -298,10 +317,11 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 	}
 
 	/**
-	* Return a list of journals hosted at this installation.
-	* @return array
-	*/
-	function getJournals() {
+	 * Return a list of journals hosted at this installation.
+	 * @return array
+	 */
+	function getJournals()
+	{
 		$journalArray = [];
 		$journalDao = DAORegistry::getDAO('JournalDAO');
 		/* @var $journalDao JournalDAO */
@@ -329,11 +349,12 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 	}
 
 	/**
-	* Takes an article submission from author and either updates an existing
-	* submission or creates a new one.
-	* @return array
-	*/
-	function authorSubmit() {
+	 * Takes an article submission from author and either updates an existing
+	 * submission or creates a new one.
+	 * @return array
+	 */
+	function authorSubmit()
+	{
 		// Get all the variables used both when saving and updating submissions.
 		$submissionId = $this->getPOSTPayloadVariable("submission_id");
 		// The revision Id will be updated with every update from Fidus Writer.
@@ -397,8 +418,8 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 	}
 
 
-
-	function notifyAboutNewSubmission($journalId, $submission, $user, $emailAddress, $firstName, $lastName) {
+	function notifyAboutNewSubmission($journalId, $submission, $user, $emailAddress, $firstName, $lastName)
+	{
 		// And we create an author for the user.
 		// Notice: authors are apparently not connected to users in OJS.
 		$userId = $user->getId();
@@ -430,7 +451,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 			if (!in_array($userGroup->getRoleId(), array(ROLE_ID_MANAGER, ROLE_ID_ASSISTANT))) continue;
 
 			$users = $userGroupDao->getUsersById($userGroup->getId(), $journalId);
-			if($users->getCount() == 1) {
+			if ($users->getCount() == 1) {
 				$user = $users->next();
 				$stageAssignmentDao->build($submissionId, $userGroup->getId(), $user->getId(), $userGroup->getRecommendOnly());
 				if ($userGroup->getRoleId() == ROLE_ID_MANAGER) $managerFound = true;
@@ -438,7 +459,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 		}
 
 		// Assign the user author to the stage
-		$authorUserGroupId =  $this->getAuthorUserGroupId($journalId);
+		$authorUserGroupId = $this->getAuthorUserGroupId($journalId);
 		if ($authorUserGroupId) {
 			$stageAssignmentDao->build($submissionId, $authorUserGroupId, $userId);
 		}
@@ -472,7 +493,8 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 
 		// Send a notification to associated users if an editor needs assigning
 		if (!$managerFound && !$submissionSubEditorFound) {
-			$roleDao = DAORegistry::getDAO('RoleDAO'); /* @var $roleDao RoleDAO */
+			$roleDao = DAORegistry::getDAO('RoleDAO');
+			/* @var $roleDao RoleDAO */
 
 			// Get the managers.
 			$managers = $roleDao->getUsersByRoleId(ROLE_ID_MANAGER, $journalId);
@@ -589,9 +611,10 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 	}
 
 	/**
-	* @return mixed
-	*/
-	function createNewSubmission($title, $abstract, $journalId, $fidusUrl, $fidusId) {
+	 * @return mixed
+	 */
+	function createNewSubmission($title, $abstract, $journalId, $fidusUrl, $fidusId)
+	{
 		$locale = AppLocale::getLocale();
 
 		$submissionDao = Application::getSubmissionDAO();
@@ -634,14 +657,15 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 	}
 
 	/**
-	*Takes a FW versionString and returns a stageId and round number.
-	* Does the opposite of stageToVersion(...) in the parent plugin.
-	*/
-	function versionToStage($versionString) {
+	 *Takes a FW versionString and returns a stageId and round number.
+	 * Does the opposite of stageToVersion(...) in the parent plugin.
+	 */
+	function versionToStage($versionString)
+	{
 		$parts = explode('.', $versionString);
 		$stageId = intval($parts[0]);
 		$round = intval($parts[1]);
-		if ($parts[2]=='5') {
+		if ($parts[2] == '5') {
 			$revisionType = 'Author';
 		} else {
 			$revisionType = 'Reviewer';
@@ -658,11 +682,12 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 
 
 	/**
-	* Takes an article review submission from reviewers
-	* @return array
-	* @throws Exception
-	*/
-	function reviewerSubmit($request) {
+	 * Takes an article review submission from reviewers
+	 * @return array
+	 * @throws Exception
+	 */
+	function reviewerSubmit($request)
+	{
 
 		$submissionId = $this->getPOSTPayloadVariable("submission_id");
 		$versionString = $this->getPOSTPayloadVariable("version");
@@ -670,7 +695,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 
 		$submissionDao = Application::getSubmissionDAO();
 		$submission = $submissionDao->getById($submissionId);
-		if ($submission ===null || $submission === "") {
+		if ($submission === null || $submission === "") {
 			throw new Exception("Error: no submission with given submissionId $submissionId exists.");
 		}
 
@@ -732,304 +757,303 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 			// Only send notifications about reviewer comment notification to managers and editors
 			// and only send to users who have not received a notification already.
 			if (!in_array(
-				$userGroup->getRoleId(),
-				array(ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR)) || in_array($userId, $receivedList)
-				) continue;
+					$userGroup->getRoleId(),
+					array(ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR)) || in_array($userId, $receivedList)
+			) continue;
 
 
+			$notificationMgr->createNotification(
+				$mockRequest, $userId, NOTIFICATION_TYPE_REVIEWER_COMMENT,
+				$submission->getContextId(), ASSOC_TYPE_REVIEW_ASSIGNMENT, $reviewAssignment->getId()
+			);
+
+			$receivedList[] = $userId;
+		}
+
+		$contextId = $submission->getContextId();
 
 
-				$notificationMgr->createNotification(
-					$mockRequest, $userId, NOTIFICATION_TYPE_REVIEWER_COMMENT,
-					$submission->getContextId(), ASSOC_TYPE_REVIEW_ASSIGNMENT, $reviewAssignment->getId()
-				);
+		// Update the notification on whether all reviews are in.
+		$stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO');
+		$stageAssignments = $stageAssignmentDao->getEditorsAssignedToStage($submissionId, $stageId);
 
-				$receivedList[] = $userId;
+		$notificationDao = DAORegistry::getDAO('NotificationDAO');
+
+		foreach ($stageAssignments as $stageAssignment) {
+			$userId = $stageAssignment->getUserId();
+
+			// Get any existing notification.
+			// $notificationFactory = $notificationDao->getByAssoc(
+			// 	ASSOC_TYPE_REVIEW_ROUND,
+			// 	$reviewRound->getId(),
+			// 	$userId,
+			// 	NOTIFICATION_TYPE_ALL_REVIEWS_IN,
+			// 	$contextId
+			// );
+
+			$currentStatus = $reviewRound->getStatus();
+			if (
+			in_array(
+				$currentStatus,
+				array(
+					REVIEW_ROUND_STATUS_PENDING_REVIEWERS,
+					REVIEW_ROUND_STATUS_PENDING_REVIEWS,
+					REVIEW_ROUND_STATUS_REVISIONS_REQUESTED,
+					REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW,
+					REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED,
+					REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL,
+					REVIEW_ROUND_STATUS_ACCEPTED,
+					REVIEW_ROUND_STATUS_DECLINED
+				)
+			)
+			) {
+				// Editor has taken a decision in round or there are pending
+				// reviews or no reviews. Delete any existing notification.
+				// if (!$notificationFactory->wasEmpty()) {
+				// 	$notification = $notificationFactory->next();
+				// 	$notificationDao->deleteObject($notification);
+				// }
+			} else {
+				// There is no current decision in round. Also there are reviews,
+				// and no more pending reviews. Insert notification, if not already present.
+				// if ($notificationFactory->wasEmpty()) {
+				// 	$notificationMgr->createNotification(
+				// 		$request,
+				// 		$userId,
+				// 		NOTIFICATION_TYPE_ALL_REVIEWS_IN,
+				// 		$contextId,
+				// 		ASSOC_TYPE_REVIEW_ROUND,
+				// 		$reviewRound->getId(),
+				// 		NOTIFICATION_LEVEL_TASK
+				// 	);
+				// }
 			}
+		}
 
-			// Update the review round status.
-			$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
-			$reviewRound = $reviewRoundDao->getById($reviewAssignment->getReviewRoundId());
-			$reviewAssignments = $reviewAssignmentDao->getByReviewRoundId($reviewRound->getId());
-			$reviewRoundDao->updateStatus($reviewRound, $reviewAssignments);
+		// Remove the review task
+		$notificationDao = DAORegistry::getDAO('NotificationDAO');
+		$notificationDao->deleteByAssoc(
+			ASSOC_TYPE_REVIEW_ASSIGNMENT,
+			$reviewAssignment->getId(),
+			$reviewAssignment->getReviewerId(),
+			NOTIFICATION_TYPE_REVIEW_ASSIGNMENT
+		);
 
-			$contextId = $submission->getContextId();
+		return;
+	}
 
-
-			// Update the notification on whether all reviews are in.
-			$stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO');
-			$stageAssignments = $stageAssignmentDao->getEditorsAssignedToStage($submissionId, $stageId);
-
-			$notificationDao = DAORegistry::getDAO('NotificationDAO');
-
-			foreach ($stageAssignments as $stageAssignment) {
-				$userId = $stageAssignment->getUserId();
-
-				// Get any existing notification.
-				// $notificationFactory = $notificationDao->getByAssoc(
-				// 	ASSOC_TYPE_REVIEW_ROUND,
-				// 	$reviewRound->getId(),
-				// 	$userId,
-				// 	NOTIFICATION_TYPE_ALL_REVIEWS_IN,
-				// 	$contextId
-				// );
-
-				$currentStatus = $reviewRound->getStatus();
-				if (
-					in_array(
-						$currentStatus,
-						array(
-							REVIEW_ROUND_STATUS_PENDING_REVIEWERS,
-							REVIEW_ROUND_STATUS_PENDING_REVIEWS,
-							REVIEW_ROUND_STATUS_REVISIONS_REQUESTED,
-							REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW,
-							REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED,
-							REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL,
-							REVIEW_ROUND_STATUS_ACCEPTED,
-							REVIEW_ROUND_STATUS_DECLINED
-						)
-						)
-					) {
-						// Editor has taken a decision in round or there are pending
-						// reviews or no reviews. Delete any existing notification.
-						// if (!$notificationFactory->wasEmpty()) {
-						// 	$notification = $notificationFactory->next();
-						// 	$notificationDao->deleteObject($notification);
-						// }
-					} else {
-						// There is no current decision in round. Also there are reviews,
-						// and no more pending reviews. Insert notification, if not already present.
-						// if ($notificationFactory->wasEmpty()) {
-						// 	$notificationMgr->createNotification(
-						// 		$request,
-						// 		$userId,
-						// 		NOTIFICATION_TYPE_ALL_REVIEWS_IN,
-						// 		$contextId,
-						// 		ASSOC_TYPE_REVIEW_ROUND,
-						// 		$reviewRound->getId(),
-						// 		NOTIFICATION_LEVEL_TASK
-						// 	);
-						// }
-					}
-				}
-
-				// Remove the review task
-				$notificationDao = DAORegistry::getDAO('NotificationDAO');
-				$notificationDao->deleteByAssoc(
-					ASSOC_TYPE_REVIEW_ASSIGNMENT,
-					$reviewAssignment->getId(),
-					$reviewAssignment->getReviewerId(),
-					NOTIFICATION_TYPE_REVIEW_ASSIGNMENT
-				);
-
-				return;
-			}
-
-			/**
-			* Set the review step of the submission to the given
-			* value if it is not already set to a higher value. Then
-			* update the given reviewer submission.
-			* @param $reviewerSubmission ReviewerSubmission
-			*/
-			function updateReviewStepAndSaveSubmission(ReviewerSubmission &$reviewerSubmission) {
-				//review step
-				$submissionCompleteStep = 4;
-				$nextStep = $submissionCompleteStep;
-				if ($reviewerSubmission->getStep() < $nextStep) {
-					$reviewerSubmission->setStep($nextStep);
-				}
-				// Save the reviewer submission.
-				$reviewerSubmissionDao = DAORegistry::getDAO('ReviewerSubmissionDAO');
-				/* @var $reviewerSubmissionDao ReviewerSubmissionDAO */
-				$reviewerSubmissionDao->updateReviewerSubmission($reviewerSubmission);
-			}
+	/**
+	 * Set the review step of the submission to the given
+	 * value if it is not already set to a higher value. Then
+	 * update the given reviewer submission.
+	 * @param $reviewerSubmission ReviewerSubmission
+	 */
+	function updateReviewStepAndSaveSubmission(ReviewerSubmission &$reviewerSubmission)
+	{
+		//review step
+		$submissionCompleteStep = 4;
+		$nextStep = $submissionCompleteStep;
+		if ($reviewerSubmission->getStep() < $nextStep) {
+			$reviewerSubmission->setStep($nextStep);
+		}
+		// Save the reviewer submission.
+		$reviewerSubmissionDao = DAORegistry::getDAO('ReviewerSubmissionDAO');
+		/* @var $reviewerSubmissionDao ReviewerSubmissionDAO */
+		$reviewerSubmissionDao->updateReviewerSubmission($reviewerSubmission);
+	}
 
 
-			/**
-			* @param $articleId
-			* @param $journalId
-			* @param $emailAddress
-			* @param $firstName
-			* @param $lastName
-			* @return null
-			*/
-			function saveAuthor($articleId, $journalId, $emailAddress, $firstName, $lastName, $affiliation, $country, $authorUrl, $biography) {
-				// Set user to initial author
-				$locale = AppLocale::getLocale();
+	/**
+	 * @param $articleId
+	 * @param $journalId
+	 * @param $emailAddress
+	 * @param $firstName
+	 * @param $lastName
+	 * @return null
+	 */
+	function saveAuthor($articleId, $journalId, $emailAddress, $firstName, $lastName, $affiliation, $country, $authorUrl, $biography)
+	{
+		// Set user to initial author
+		$locale = AppLocale::getLocale();
 
-				$authorDao = DAORegistry::getDAO('AuthorDAO');
-				/** @var Author $author */
-				$author = $authorDao->newDataObject();
-				$author->setGivenName($firstName, $locale);
-				//$author->setMiddleName("");
-				$author->setFamilyName($lastName, $locale);
-				//$author->setSuffix("");
-				$author->setAffiliation($affiliation, $locale);
-				$author->setCountry($country);
-				$author->setEmail($emailAddress);
-				$author->setUrl($authorUrl);
-				$author->setBiography($biography, $locale);
-				$author->setPrimaryContact(true);
-				$author->setIncludeInBrowse(true);
+		$authorDao = DAORegistry::getDAO('AuthorDAO');
+		/** @var Author $author */
+		$author = $authorDao->newDataObject();
+		$author->setGivenName($firstName, $locale);
+		//$author->setMiddleName("");
+		$author->setFamilyName($lastName, $locale);
+		//$author->setSuffix("");
+		$author->setAffiliation($affiliation, $locale);
+		$author->setCountry($country);
+		$author->setEmail($emailAddress);
+		$author->setUrl($authorUrl);
+		$author->setBiography($biography, $locale);
+		$author->setPrimaryContact(true);
+		$author->setIncludeInBrowse(true);
 
-				$authorUserGroup = $this->getAuthorUserGroupId($journalId);
-				if ($authorUserGroup) {
-					$author->setUserGroupId($authorUserGroup);
-				}
-				$author->setSubmissionId($articleId);
+		$authorUserGroup = $this->getAuthorUserGroupId($journalId);
+		if ($authorUserGroup) {
+			$author->setUserGroupId($authorUserGroup);
+		}
+		$author->setSubmissionId($articleId);
 
-				$authorId = $authorDao->insertObject($author);
-				$author->setId($authorId);
-				return $authorId;
-			}
-
-
-			/**
-			* @param $journalId
-			* @return mixed
-			*/
-			function getAuthorUserGroupId($journalId) {
-				$userGroupDao = DAORegistry::getDAO('UserGroupDAO');
-				/** /classes/security/UserGroup  */
-				$authorUserGroup = $userGroupDao->getDefaultByRoleId($journalId, ROLE_ID_AUTHOR);
-				if ($authorUserGroup === false) {
-					return false;
-				}
-				return $authorUserGroup->getId();
-			}
-
-			/**
-			* Returns a user with the given $emailAddress or creates and returns a new
-			* user if this is not the case.
-			*
-			* @param $emailAddress
-			* @param $firstName
-			* @param $lastName
-			* @return PKPUser|User
-			*/
-			function getOrCreateUser($emailAddress, $firstName, $lastName) {
-				/** @var UserDAO $userDao */
-				$userDao = DAORegistry::getDAO('UserDAO');
-				if ($userDao->userExistsByEmail($emailAddress)) {
-
-					// User already has account, check if enrolled as author in journal
-					/** @var User */
-					$user = $userDao->getUserByEmail($emailAddress);
-					$userId = $user->getId();
-
-				} else {
-					$locale = AppLocale::getLocale();
-
-					// User does not have an account. Create one and enroll as author.
-					$username = Validation::suggestUsername($firstName, $lastName);
-					$password = Validation::generatePassword();
-
-					$user = $userDao->newDataObject();
-					$user->setUsername($username);
-					$user->setPassword(Validation::encryptCredentials($username, $password));
-					$user->setGivenName($firstName, $locale);
-					$user->setFamilyName($lastName, $locale);
-					$user->setEmail($emailAddress);
-					$user->setDateRegistered(Core::getCurrentDate());
-
-					//this is to be added for authentication plugin in future, so that we will list it in auth_source table
-					$authDao = DAORegistry::getDAO('AuthSourceDAO');
-					$defaultAuth = $authDao->getDefaultPlugin();
-					$user->setAuthId($defaultAuth->authId);
-
-					$userDao->insertObject($user);
-					$userId = $user->getId();
-
-					// Send notification to the Fiduswriter user about the new user account and reset password
-					$request = PKPApplication::getApplication()->getRequest();
-					$hash = Validation::generatePasswordResetHash($user->getId());
-					import('lib.pkp.classes.mail.MailTemplate');
-					$mail = new MailTemplate('PASSWORD_RESET_CONFIRM');
-					$site = $request->getSite();
-					$mail->setReplyTo($site->getLocalizedContactEmail(), $site->getLocalizedContactName());
-					$mail->assignParams(array(
-						'url' => $request->url(null, 'login', 'resetPassword', $user->getUsername(), array('confirm' => $hash)),
-						'siteTitle' => $site->getLocalizedTitle()
-					));
-					$mail->addRecipient($user->getEmail(), $user->getFullName());
-					$mail->send();
-				}
-				return $user;
-			}
-
-			/**
-			* Whether or not the user can be counted as an editor..
-			* @param $user
-			* @param $journalId
-			* @return bool
-			*/
-			function isEditor($userId, $journalId) {
-
-				$roleDao = DAORegistry::getDAO('RoleDAO');
-
-				// Check various roles that all could be counted as editors.
-				if ($roleDao->userHasRole($journalId, $userId, ROLE_ID_MANAGER)) {
-					return true;
-				} elseif ($roleDao->userHasRole($journalId, $userId, ROLE_ID_SUB_EDITOR)) {
-					return true;
-				} elseif ($roleDao->userHasRole(CONTEXT_ID_NONE, $userId, ROLE_ID_SITE_ADMIN)) {
-					return true;
-				} elseif ($roleDao->userHasRole($journalId, $userId, ROLE_ID_ASSISTANT)) {
-					return true;
-				}
-
-				return false;
-			}
-
-			/**
-			* Gets a temporary access token from the Fidus Writer server to log the
-			* given user in. This way we avoid exposing the api key in the client.
-			* @param $userId
-			* @param $accessRights
-			*/
-			function getLoginToken($fidusUrl, $fidusId, $versionString, $userId, $isEditor) {
-
-				$dataArray = array(
-					'fidus_id' => $fidusId,
-					'version' => $versionString,
-					'user_id' => $userId,
-					'is_editor' => $isEditor,
-					'key' => $this->getApiKey()
-				);
-
-				$request = curl_init(
-					$fidusUrl . '/api/ojs/get_login_token/?' . http_build_query($dataArray)
-				);
-				curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
-				$result = json_decode(curl_exec($request), true);
-				return $result['token'];
-			}
+		$authorId = $authorDao->insertObject($author);
+		$author->setId($authorId);
+		return $authorId;
+	}
 
 
-			/**
-			* Forwards user to Fidus Writer after checking access rights.
-			* @param $fidusUrl
-			* @param $fidusId
-			* @param $submissionId
-			* @param $version
-			* @return string
-			*/
-			function loginFidusWriter($submissionId, $versionString) {
-				$fwPlugin = $this->getFidusWriterPlugin();
-				$fidusId = $fwPlugin->getSubmissionSetting($submissionId, 'fidusId');
-				$fidusUrl = $fwPlugin->getSubmissionSetting($submissionId, 'fidusUrl');
-				$user = $this->getUserFromSession();
-				$submissionDao = Application::getSubmissionDAO();
-				$submission = $submissionDao->getById($submissionId);
-				$journalId = $submission->getContextId();
-				// Editor users will fallback to being logged in as the editor user on the
-				// backend if they are not registered as either reviewers or authors of
-				// the revision they are trying to look at.
-				$isEditor = $this->isEditor($user->getId(), $journalId, $submission);
+	/**
+	 * @param $journalId
+	 * @return mixed
+	 */
+	function getAuthorUserGroupId($journalId)
+	{
+		$userGroupDao = DAORegistry::getDAO('UserGroupDAO');
+		/** /classes/security/UserGroup  */
+		$authorUserGroup = $userGroupDao->getDefaultByRoleId($journalId, ROLE_ID_AUTHOR);
+		if ($authorUserGroup === false) {
+			return false;
+		}
+		return $authorUserGroup->getId();
+	}
 
-				$userId = $user->getId();
-				$loginToken = $this->getLoginToken($fidusUrl, $fidusId, $versionString, $userId, $isEditor);
-				echo '
+	/**
+	 * Returns a user with the given $emailAddress or creates and returns a new
+	 * user if this is not the case.
+	 *
+	 * @param $emailAddress
+	 * @param $firstName
+	 * @param $lastName
+	 * @return PKPUser|User
+	 */
+	function getOrCreateUser($emailAddress, $firstName, $lastName)
+	{
+		/** @var UserDAO $userDao */
+		$userDao = DAORegistry::getDAO('UserDAO');
+		if ($userDao->userExistsByEmail($emailAddress)) {
+
+			// User already has account, check if enrolled as author in journal
+			/** @var User */
+			$user = $userDao->getUserByEmail($emailAddress);
+			$userId = $user->getId();
+
+		} else {
+			$locale = AppLocale::getLocale();
+
+			// User does not have an account. Create one and enroll as author.
+			$username = Validation::suggestUsername($firstName, $lastName);
+			$password = Validation::generatePassword();
+
+			$user = $userDao->newDataObject();
+			$user->setUsername($username);
+			$user->setPassword(Validation::encryptCredentials($username, $password));
+			$user->setGivenName($firstName, $locale);
+			$user->setFamilyName($lastName, $locale);
+			$user->setEmail($emailAddress);
+			$user->setDateRegistered(Core::getCurrentDate());
+
+			//this is to be added for authentication plugin in future, so that we will list it in auth_source table
+			$authDao = DAORegistry::getDAO('AuthSourceDAO');
+			$defaultAuth = $authDao->getDefaultPlugin();
+			$user->setAuthId($defaultAuth->authId);
+
+			$userDao->insertObject($user);
+			$userId = $user->getId();
+
+			// Send notification to the Fiduswriter user about the new user account and reset password
+			$request = PKPApplication::getApplication()->getRequest();
+			$hash = Validation::generatePasswordResetHash($user->getId());
+			import('lib.pkp.classes.mail.MailTemplate');
+			$mail = new MailTemplate('PASSWORD_RESET_CONFIRM');
+			$site = $request->getSite();
+			$mail->setReplyTo($site->getLocalizedContactEmail(), $site->getLocalizedContactName());
+			$mail->assignParams(array(
+				'url' => $request->url(null, 'login', 'resetPassword', $user->getUsername(), array('confirm' => $hash)),
+				'siteTitle' => $site->getLocalizedTitle()
+			));
+			$mail->addRecipient($user->getEmail(), $user->getFullName());
+			$mail->send();
+		}
+		return $user;
+	}
+
+	/**
+	 * Whether or not the user can be counted as an editor..
+	 * @param $user
+	 * @param $journalId
+	 * @return bool
+	 */
+	function isEditor($userId, $journalId)
+	{
+
+		$roleDao = DAORegistry::getDAO('RoleDAO');
+
+		// Check various roles that all could be counted as editors.
+		if ($roleDao->userHasRole($journalId, $userId, ROLE_ID_MANAGER)) {
+			return true;
+		} elseif ($roleDao->userHasRole($journalId, $userId, ROLE_ID_SUB_EDITOR)) {
+			return true;
+		} elseif ($roleDao->userHasRole(CONTEXT_ID_NONE, $userId, ROLE_ID_SITE_ADMIN)) {
+			return true;
+		} elseif ($roleDao->userHasRole($journalId, $userId, ROLE_ID_ASSISTANT)) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Gets a temporary access token from the Fidus Writer server to log the
+	 * given user in. This way we avoid exposing the api key in the client.
+	 * @param $userId
+	 * @param $accessRights
+	 */
+	function getLoginToken($fidusUrl, $fidusId, $versionString, $userId, $isEditor)
+	{
+
+		$dataArray = array(
+			'fidus_id' => $fidusId,
+			'version' => $versionString,
+			'user_id' => $userId,
+			'is_editor' => $isEditor,
+			'key' => $this->getApiKey()
+		);
+
+		$request = curl_init(
+			$fidusUrl . '/api/ojs/get_login_token/?' . http_build_query($dataArray)
+		);
+		curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
+		$result = json_decode(curl_exec($request), true);
+		return $result['token'];
+	}
+
+
+	/**
+	 * Forwards user to Fidus Writer after checking access rights.
+	 * @param $fidusUrl
+	 * @param $fidusId
+	 * @param $submissionId
+	 * @param $version
+	 * @return string
+	 */
+	function loginFidusWriter($submissionId, $versionString)
+	{
+		$fwPlugin = $this->getFidusWriterPlugin();
+		$fidusId = $fwPlugin->getSubmissionSetting($submissionId, 'fidusId');
+		$fidusUrl = $fwPlugin->getSubmissionSetting($submissionId, 'fidusUrl');
+		$user = $this->getUserFromSession();
+		$submissionDao = Application::getSubmissionDAO();
+		$submission = $submissionDao->getById($submissionId);
+		$journalId = $submission->getContextId();
+		// Editor users will fallback to being logged in as the editor user on the
+		// backend if they are not registered as either reviewers or authors of
+		// the revision they are trying to look at.
+		$isEditor = $this->isEditor($user->getId(), $journalId, $submission);
+
+		$userId = $user->getId();
+		$loginToken = $this->getLoginToken($fidusUrl, $fidusId, $versionString, $userId, $isEditor);
+		echo '
 				<html>
 				<body onload="document.frm1.submit()">
 				<form method="post" action="' . $fidusUrl . '/api/ojs/revision/' . $fidusId . '/' . $versionString . '/" name = "frm1" class="inline">
@@ -1039,70 +1063,74 @@ class FidusWriterGatewayPlugin extends GatewayPlugin {
 				</body >
 				</html >';
 
-				return;
-			}
+		return;
+	}
 
 
-			/**
-			* @return User/Null
-			*/
-			function getUserFromSession() {
-				$sessionManager = SessionManager::getManager();
-				$userSession = $sessionManager->getUserSession();
-				$user = $userSession->getUser();
-				return $user;
-			}
+	/**
+	 * @return User/Null
+	 */
+	function getUserFromSession()
+	{
+		$sessionManager = SessionManager::getManager();
+		$userSession = $sessionManager->getUserSession();
+		$user = $userSession->getUser();
+		return $user;
+	}
 
 
-			/**
-			* @param $editorMessageCommentText
-			* @param $reviewAssignment
-			* @return bool
-			*/
-			function saveCommentForEditor($editorMessageCommentText, $reviewAssignment) {
-				$hidden = true;
-				return $this->saveComment($editorMessageCommentText, $hidden, $reviewAssignment);
-			}
+	/**
+	 * @param $editorMessageCommentText
+	 * @param $reviewAssignment
+	 * @return bool
+	 */
+	function saveCommentForEditor($editorMessageCommentText, $reviewAssignment)
+	{
+		$hidden = true;
+		return $this->saveComment($editorMessageCommentText, $hidden, $reviewAssignment);
+	}
 
-			/**
-			* @param $editorAndAuthorMessageCommentText
-			* @param $reviewAssignment
-			* @return bool
-			*/
-			function saveCommentForEditorAndAuthor($editorAndAuthorMessageCommentText, $reviewAssignment) {
-				$hidden = false;
-				return $this->saveComment($editorAndAuthorMessageCommentText, $hidden, $reviewAssignment);
-			}
+	/**
+	 * @param $editorAndAuthorMessageCommentText
+	 * @param $reviewAssignment
+	 * @return bool
+	 */
+	function saveCommentForEditorAndAuthor($editorAndAuthorMessageCommentText, $reviewAssignment)
+	{
+		$hidden = false;
+		return $this->saveComment($editorAndAuthorMessageCommentText, $hidden, $reviewAssignment);
+	}
 
-			/**
-			* @param $commentText
-			* @param $hidden
-			* @param $reviewAssignment
-			* @return bool
-			*/
-			function saveComment($commentText, $hidden, $reviewAssignment) {
-				if (strlen($commentText) === 0) {
-					return false;
-				}
-				// Create a comment with the review.
-				$submissionCommentDao = DAORegistry::getDAO('SubmissionCommentDAO');
-				$comment = $submissionCommentDao->newDataObject();
-				$comment->setCommentType(COMMENT_TYPE_PEER_REVIEW);
-				$comment->setRoleId(ROLE_ID_REVIEWER);
-				$comment->setAssocId($reviewAssignment->getId());
-				$comment->setSubmissionId($reviewAssignment->getSubmissionId());
-				$comment->setAuthorId($reviewAssignment->getReviewerId());
-				$comment->setComments($commentText);
-				$comment->setCommentTitle('');
-				$viewable = true;
-				if ($hidden === true) {
-					$viewable = false;
-				}
-				$comment->setViewable($viewable);
-				$comment->setDatePosted(Core::getCurrentDate());
-				// Persist.
-				$submissionCommentDao->insertObject($comment);
-				return true;
-			}
-
+	/**
+	 * @param $commentText
+	 * @param $hidden
+	 * @param $reviewAssignment
+	 * @return bool
+	 */
+	function saveComment($commentText, $hidden, $reviewAssignment)
+	{
+		if (strlen($commentText) === 0) {
+			return false;
 		}
+		// Create a comment with the review.
+		$submissionCommentDao = DAORegistry::getDAO('SubmissionCommentDAO');
+		$comment = $submissionCommentDao->newDataObject();
+		$comment->setCommentType(COMMENT_TYPE_PEER_REVIEW);
+		$comment->setRoleId(ROLE_ID_REVIEWER);
+		$comment->setAssocId($reviewAssignment->getId());
+		$comment->setSubmissionId($reviewAssignment->getSubmissionId());
+		$comment->setAuthorId($reviewAssignment->getReviewerId());
+		$comment->setComments($commentText);
+		$comment->setCommentTitle('');
+		$viewable = true;
+		if ($hidden === true) {
+			$viewable = false;
+		}
+		$comment->setViewable($viewable);
+		$comment->setDatePosted(Core::getCurrentDate());
+		// Persist.
+		$submissionCommentDao->insertObject($comment);
+		return true;
+	}
+
+}
