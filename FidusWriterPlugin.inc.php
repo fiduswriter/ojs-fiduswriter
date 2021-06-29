@@ -37,7 +37,6 @@ class FidusWriterPlugin extends GenericPlugin
 			HookRegistry::register('reviewassignmentdao::_updateobject', array($this, 'callbackUpdateReviewAssignment'));
 			HookRegistry::register('reviewassignmentdao::_deletebyid', array($this, 'callbackRemoveReviewer'));
 			HookRegistry::register('reviewrounddao::_insertobject', array($this, 'callbackNewReviewRound'));
-			HookRegistry::register('reviewrounddao::_updatestatus', array($this, 'callbackUpdateReviewRound'));
 			HookRegistry::register('EditorAction::recordDecision', array($this, 'callbackRecordDecision'));
 			HookRegistry::register('TemplateManager::fetch', array($this, 'templateFetchCallback'));
 			// Add fields fidusId and fidusUrl to submissions
@@ -524,7 +523,6 @@ class FidusWriterPlugin extends GenericPlugin
 	 */
 	function callbackNewReviewRound($hookname, $args)
 	{
-
 		$row =& $args[1];
 		$submissionId = intval($row[0]);
 		$stageId = intval($row[1]);
@@ -578,6 +576,7 @@ class FidusWriterPlugin extends GenericPlugin
 		return false;
 	}
 
+	// Create Revision files for Copyediting and Production steps
 	function callbackRecordDecision($hookname, $args)
 	{
 		if ('EditorAction::recordDecision' === $hookname) {
@@ -590,9 +589,48 @@ class FidusWriterPlugin extends GenericPlugin
 			if ($fidusId) {
 				// submission is connected to Fidus Writer
 				$decision = $args[1]['decision'];
-				$stageId = $submission->getData('stageId');
+				$stageId = intval($submission->getData('stageId'));
 
-				if (4 == $stageId && SUBMISSION_EDITOR_DECISION_SEND_TO_PRODUCTION == $decision) {
+				if (4 > $stageId && SUBMISSION_EDITOR_DECISION_ACCEPT == $decision) {
+					// Submission sent to copyediting from a previous step
+					$oldRound = 0;
+					$oldRevisionType = "Reviewer";
+
+					if (3 == $stageId) {
+						// If the submission is in the review step, check for the review revision file
+						$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
+						$reviewRound = $reviewRoundDao->getLastReviewRoundBySubmissionId($submission->getId(), $stageId);
+
+						if ($reviewRound instanceof ReviewRound) {
+							$oldRound = $reviewRound->getRound();
+
+							// Check if review revision exists
+							$this->import('FidusWriterReviewRoundRevisionDAO');
+							$reviewRoundRevisionDao = new FidusWriterReviewRoundRevisionDAO();
+							$reviewRoundRevision = $reviewRoundRevisionDao->getRoundRevision($reviewRound->getId());
+							if (
+								$reviewRoundRevision instanceof DataObject &&
+								!empty($reviewRoundRevision->getData('revision_url'))
+							) {
+								$oldRevisionType = "Author";
+							}
+						}
+					}
+
+					$oldVersionString = $this->stageToVersion($stageId, $oldRound, $oldRevisionType);
+					$newVersionString = $this->stageToVersion(4);
+
+					$dataArray = [
+						'old_version' => $oldVersionString,
+						'new_version' => $newVersionString,
+						'key' => $this->getApiKey(), //shared key between OJS and Editor software
+					];
+
+					$fidusUrl = $submission->getData('fidusUrl');
+					$url = $fidusUrl . '/api/ojs/create_copy/' . $fidusId . '/';
+					$this->sendPostRequest($url, $dataArray);
+				} elseif (4 == $stageId && SUBMISSION_EDITOR_DECISION_SEND_TO_PRODUCTION == $decision) {
+					// Submission proceeded to production from copyediting
 					$oldVersionString = $this->stageToVersion(REVIEW_ROUND_STATUS_ACCEPTED);
 					$newVersionString = $this->stageToVersion(5);
 
@@ -606,76 +644,6 @@ class FidusWriterPlugin extends GenericPlugin
 					$url = $fidusUrl . '/api/ojs/create_copy/' . $fidusId . '/';
 					$this->sendPostRequest($url, $dataArray);
 				}
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Create revision for copyediting, when review is accepted
-	 * @param $hookname
-	 * @param $args
-	 * @return false
-	 */
-	function callbackUpdateReviewRound($hookname, $args)
-	{
-		if ('reviewrounddao::_updatestatus' === $hookname) {
-			$row =& $args[1];
-			$reviewRoundId = intval($row[1]);
-			$newStatus = intval($row[0]);
-
-			$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
-			$reviewRound = $reviewRoundDao->getById($reviewRoundId);
-
-			$submissionId = $reviewRound->getSubmissionId();
-			$fidusId = $this->getSubmissionSetting($submissionId, 'fidusId');
-
-			if ($fidusId == false) {
-				// Not connected to Fidus Writer
-				return false;
-			}
-
-			$oldStatus = $reviewRound->getStatus();
-			$reviewerStates = array(
-				REVIEW_ROUND_STATUS_PENDING_REVIEWERS,
-				REVIEW_ROUND_STATUS_PENDING_REVIEWS,
-				REVIEW_ROUND_STATUS_REVIEWS_READY,
-				REVIEW_ROUND_STATUS_REVIEWS_COMPLETED
-			);
-
-			if (
-				in_array($oldStatus, $reviewerStates) &&
-				REVIEW_ROUND_STATUS_ACCEPTED === $newStatus
-			) {
-				// We need to create the author SubmissionRevision for the round.
-				$stageId = $reviewRound->getStageId();
-				$round = $reviewRound->getRound();
-
-				// Check if review revision exists
-				$this->import('FidusWriterReviewRoundRevisionDAO');
-				$reviewRoundRevisionDao = new FidusWriterReviewRoundRevisionDAO();
-				$reviewRoundRevision = $reviewRoundRevisionDao->getRoundRevision($reviewRound->getId());
-				$reviewRevisionType = "Reviewer";
-				if (
-					$reviewRoundRevision instanceof DataObject &&
-					!empty($reviewRoundRevision->getData('revision_url'))
-				) {
-					$reviewRevisionType = "Author";
-				}
-
-				$oldVersionString = $this->stageToVersion($stageId, $round, $reviewRevisionType);
-				$newVersionString = $this->stageToVersion($newStatus);
-
-				$dataArray = [
-					'old_version' => $oldVersionString,
-					'new_version' => $newVersionString,
-					'key' => $this->getApiKey(), //shared key between OJS and Editor software
-				];
-
-				$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
-				$url = $fidusUrl . '/api/ojs/create_copy/' . $fidusId . '/';
-				$this->sendPostRequest($url, $dataArray);
 			}
 		}
 
@@ -780,6 +748,7 @@ class FidusWriterPlugin extends GenericPlugin
 	function stageToVersion($stageId, $round = 0, $revisionType = 'Reviewer')
 	{
 		switch ($stageId) {
+			case 0:
 			case 1:
 				// submission
 				return '1.0.0';
