@@ -400,23 +400,70 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 			if ($submission === NUll || $submission === "") {
 				throw new Exception("Error: no submission with given submissionId $submissionId exists");
 			}
-			// Given that this is a resubmission, we need to set the status of
-			// the stage to REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED.
+
 			$versionString = $this->getPOSTPayloadVariable("version");
 			$versionInfo = $this->versionToStage($versionString);
+
+			// Check stage
 			$stageId = $versionInfo['stageId'];
-			$round = $versionInfo['round'];
-			$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
-			$reviewRound = $reviewRoundDao->getReviewRound($submissionId, $stageId, $round);
-			$reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED);
-			$reviewRoundDao->updateObject($reviewRound);
+			if ($stageId === 4) { // Revision in copyediting stage
+				// Send notification
+				$this->notifyAboutDraftFileUpdate($submission);
+			} elseif ($stageId === 3) { // Revision in reviewing stage
+				// Given that this is a resubmission, we need to set the status of
+				// the stage to REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED.
+				$round = $versionInfo['round'];
+				$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
+				$reviewRound = $reviewRoundDao->getReviewRound($submissionId, $stageId, $round);
+				$reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED);
+				$reviewRoundDao->updateObject($reviewRound);
+			}
+
 			$response = array(
 				"version" => $this->getApiVersion()
 			);
+
 			$this->sendJsonResponse($response);
 		}
 	}
 
+	function notifyAboutDraftFileUpdate($submission)
+	{
+		import('lib.pkp.classes.mail.SubmissionMailTemplate');
+		import('lib.pkp.classes.log.PKPSubmissionEmailLogEntry');
+		$mail = new SubmissionMailTemplate($submission, 'REVISED_VERSION_NOTIFY');
+		$mail->setEventType(SUBMISSION_EMAIL_AUTHOR_NOTIFY_REVISED_VERSION);
+
+		// Get editors assigned to the submission, consider also the recommendOnly editors
+		$userDao = DAORegistry::getDAO('UserDAO');
+		$stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO');
+		$editorsStageAssignments = $stageAssignmentDao->getEditorsAssignedToStage($submission->getId(), $submission->getStageId());
+		$editorIds = [];
+		foreach ($editorsStageAssignments as $editorsStageAssignment) {
+			$editorId = $editorsStageAssignment->getUserId();
+			$editor = $userDao->getById($editorId);
+			$mail->addRecipient($editor->getEmail(), $editor->getFullName());
+			$editorIds[] = $editorId;
+		}
+
+		// Assign author and submission data
+		$primaryAuthor = $submission->getPrimaryAuthor();
+		$this->import('classes.NotificationRequest');
+		$request = Application::getRequest();
+		$router = $request->getRouter();
+		$dispatcher = $router->getDispatcher();
+		$contextDao = Application::getContextDAO();
+		$context = $contextDao->getById($submission->getJournalId());
+		$submissionUrl = $dispatcher->url($request, ROUTE_PAGE, $context->getPath(), 'workflow', 'index', array($submission->getId(), $submission->getStageId()));
+		$authorFullName = $primaryAuthor->getFullName();
+		$mail->assignParams(array(
+			'authorName' => $authorFullName,
+			'editorialContactSignature' => '',
+			'submissionUrl' => $submissionUrl,
+		));
+
+		$mail->send();
+	}
 
 	function notifyAboutNewSubmission($journalId, $submission, $user, $emailAddress, $firstName, $lastName)
 	{
