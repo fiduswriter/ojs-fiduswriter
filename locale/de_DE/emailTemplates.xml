@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE email_texts SYSTEM "../../lib/pkp/dtd/emailTemplateData.dtd">
+
+<email_texts locale="en_US">
+	<email_text key="FIDUSWRITER_COPYEDIT_AUTHOR_COMPLETE">
+		<subject>Bearbeitungsprüfung abgeschlossen</subject>
+		<body><![CDATA[{$editorialContactName}:<br />
+<br />
+Ich habe gerade den bearbeiteten Beitrag &quot;{$submissionTitle}&quot; für {$contextName}. Das Papier ist bereit für die letzte Redaktions- und Grafikbearbeitung.<br />
+<br />
+Danke für Ihren Beitrag zu meiner Arbeit<br />
+{$authorName}]]></body>
+		<description>Der Autor sendet diese E-Mail an den Abschnittsredakteur, um ihn darüber zu informieren, dass er den Bearbeitungsprozess abgeschlossen hat.</description>
+	</email_text>
+</email_texts>

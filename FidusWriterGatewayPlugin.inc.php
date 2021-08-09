@@ -417,6 +417,8 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 				$reviewRound = $reviewRoundDao->getReviewRound($submissionId, $stageId, $round);
 				$reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED);
 				$reviewRoundDao->updateObject($reviewRound);
+				// Send notification
+				$this->notifyAboutAuthorResubmission($submission);
 			}
 
 			$response = array(
@@ -427,7 +429,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 		}
 	}
 
-	function notifyAboutDraftFileUpdate($submission)
+	function notifyAboutAuthorResubmission($submission)
 	{
 		import('lib.pkp.classes.mail.SubmissionMailTemplate');
 		import('lib.pkp.classes.log.PKPSubmissionEmailLogEntry');
@@ -460,6 +462,62 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 			'authorName' => $authorFullName,
 			'editorialContactSignature' => '',
 			'submissionUrl' => $submissionUrl,
+		));
+
+		$mail->send();
+	}
+
+	function notifyAboutDraftFileUpdate($submission)
+	{
+		$appLocale = AppLocale::getLocale();
+
+		// Check if email-template is installd
+		$emailTemplateDao = DAORegistry::getDAO('EmailTemplateDAO');
+		$emailTemplate = $emailTemplateDao->getEmailTemplate('FIDUSWRITER_COPYEDIT_AUTHOR_COMPLETE', $appLocale, 0);
+		if (!$emailTemplate || empty($emailTemplate->getBody())) {
+			$plugin = $this->getFidusWriterPlugin();
+			$request = Application::getRequest();
+			$site = $request->getSite();
+			$installedLocales = $site->getInstalledLocales();
+			$emailTemplateDao->installEmailTemplates($plugin->getInstallEmailTemplatesFile(), false, 'FIDUSWRITER_COPYEDIT_AUTHOR_COMPLETE');
+			$emailTemplateDataFilePathBase = $plugin->getInstallEmailTemplateDataFile();
+			foreach ($installedLocales as $locale) {
+				$filename = str_replace('{$installedLocale}', $locale, $emailTemplateDataFilePathBase);
+				if (!file_exists($filename)) continue;
+				$emailTemplateDao->installEmailTemplateData($filename, false, 'FIDUSWRITER_COPYEDIT_AUTHOR_COMPLETE');
+			}
+		}
+
+		import('lib.pkp.classes.mail.SubmissionMailTemplate');
+		import('lib.pkp.classes.log.PKPSubmissionEmailLogEntry');
+		$mail = new SubmissionMailTemplate($submission, 'FIDUSWRITER_COPYEDIT_AUTHOR_COMPLETE');
+		$mail->setEventType(SUBMISSION_EMAIL_COPYEDIT_NOTIFY_AUTHOR_COMPLETE);
+
+		// Get editors assigned to the submission, consider also the recommendOnly editors
+		$userDao = DAORegistry::getDAO('UserDAO');
+		$stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO');
+		$editorsStageAssignments = $stageAssignmentDao->getEditorsAssignedToStage($submission->getId(), $submission->getStageId());
+		$editorIds = [];
+		foreach ($editorsStageAssignments as $editorsStageAssignment) {
+			$editorId = $editorsStageAssignment->getUserId();
+			$editor = $userDao->getById($editorId);
+			$mail->addRecipient($editor->getEmail(), $editor->getFullName());
+			$editorIds[] = $editorId;
+		}
+
+		// Assign author and submission data
+		$primaryAuthor = $submission->getPrimaryAuthor();
+		$authorFullName = $primaryAuthor->getFullName();
+		$submissionLocale = $submission->getLocale();
+		$submissionTitle = $submission->getTitle($submissionLocale, false);
+		$contextDao = Application::getContextDAO();
+		$context = $contextDao->getById($submission->getJournalId());
+		AppLocale::requireComponents(LOCALE_COMPONENT_PKP_USER);
+		$mail->assignParams(array(
+			'editorialContactName' => PKPLocale::translate('user.role.editors'),
+			'submissionTitle' => $submissionTitle,
+			'contextName' => $context->getName($submissionLocale),
+			'authorName' => $authorFullName
 		));
 
 		$mail->send();

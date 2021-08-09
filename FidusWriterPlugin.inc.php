@@ -98,6 +98,20 @@ class FidusWriterPlugin extends GenericPlugin
 	}
 
 	/**
+	 * @see PKPPlugin::getInstallEmailTemplatesFile()
+	 */
+	function getInstallEmailTemplatesFile() {
+		return ($this->getPluginPath() . '/emailTemplates.xml');
+	}
+
+	/**
+	 * @see PKPPlugin::getInstallEmailTemplateDataFile()
+	 */
+	function getInstallEmailTemplateDataFile() {
+		return ($this->getPluginPath() . '/locale/{$installedLocale}/emailTemplates.xml');
+	}
+
+	/**
 	 * @copydoc Plugin::getActions()
 	 */
 	function getActions($request, $verb)
