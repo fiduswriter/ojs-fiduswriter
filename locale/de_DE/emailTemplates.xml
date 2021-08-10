@@ -4,11 +4,10 @@
 <email_texts locale="en_US">
 	<email_text key="FIDUSWRITER_COPYEDIT_AUTHOR_COMPLETE">
 		<subject>Bearbeitungsprüfung abgeschlossen</subject>
-		<body><![CDATA[{$editorialContactName}:<br />
+		<body><![CDATA[{$editorialContactName},<br />
 <br />
-Ich habe gerade den bearbeiteten Beitrag &quot;{$submissionTitle}&quot; für {$contextName}. Das Papier ist bereit für die letzte Redaktions- und Grafikbearbeitung.<br />
+ich habe eine korrigierte letzte Fassung des Manuskripts "{$submissionTitle}" für {$contextName} fertiggestellt. Sie steht nun zum Layout und zur Vorbereitung der Fahnen bereit.<br />
 <br />
-Danke für Ihren Beitrag zu meiner Arbeit<br />
 {$authorName}]]></body>
 		<description>Der Autor sendet diese E-Mail an den Abschnittsredakteur, um ihn darüber zu informieren, dass er den Bearbeitungsprozess abgeschlossen hat.</description>
 	</email_text>

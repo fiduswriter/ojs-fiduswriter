@@ -6,9 +6,8 @@
 		<subject>Editing check completed</subject>
 		<body><![CDATA[{$editorialContactName}:<br />
 <br />
-I just reviewed the edited post &quot;{$submissionTitle}&quot; for {$contextName}. The paper is ready for the final round of editing and graphic editing.<br />
+I have now prepared a copyedited version of the manuscript "{$submissionTitle}“ for {$contextName}. It is ready for layout and the preparation of the galleys.<br />
 <br />
-Thank you for your contribution to my work<br />
 {$authorName}]]></body>
 		<description>The author sends this email to the section editor to let him know that he has completed the editing process.</description>
 	</email_text>
