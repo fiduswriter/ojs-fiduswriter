@@ -1130,7 +1130,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 		);
 		curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
 		$result = json_decode(curl_exec($request), true);
-		return $result['token'];
+		return empty($result['token']) ? false : $result['token'];
 	}
 
 
@@ -1154,10 +1154,16 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 		// Editor users will fallback to being logged in as the editor user on the
 		// backend if they are not registered as either reviewers or authors of
 		// the revision they are trying to look at.
-		$isEditor = $this->isEditor($user->getId(), $journalId, $submission);
+		$isEditor = $this->isEditor($user->getId(), $journalId);
 
 		$userId = $user->getId();
 		$loginToken = $this->getLoginToken($fidusUrl, $fidusId, $versionString, $userId, $isEditor);
+
+		if (!$loginToken) {
+			$this->sendErrorResponse('No access');
+			exit;
+		}
+
 		echo '
 				<html>
 				<body onload="document.frm1.submit()">
