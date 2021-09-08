@@ -37,6 +37,8 @@ class FidusWriterPlugin extends GenericPlugin
 			HookRegistry::register('reviewassignmentdao::_updateobject', array($this, 'callbackUpdateReviewAssignment'));
 			HookRegistry::register('reviewassignmentdao::_deletebyid', array($this, 'callbackRemoveReviewer'));
 			HookRegistry::register('reviewrounddao::_insertobject', array($this, 'callbackNewReviewRound'));
+			HookRegistry::register('stageassignmentdao::_insertobject', array($this, 'callbackStageAssignment'));
+			HookRegistry::register('stageassignmentdao::_deletebyall', array($this, 'callbackStageAssignment'));
 			HookRegistry::register('EditorAction::recordDecision', array($this, 'callbackRecordDecision'));
 			HookRegistry::register('TemplateManager::fetch', array($this, 'templateFetchCallback'));
 			// Add fields fidusId and fidusUrl to submissions
@@ -558,14 +560,12 @@ class FidusWriterPlugin extends GenericPlugin
 			// We need to copy a file from the previous revision round. If the author has
 			// submitted something for the round, we use that version.
 			// Otherwise, we use the Reviewer's version.
+			$this->import('FidusWriterReviewRoundRevisionDAO');
+			$reviewRoundRevisionDao = new FidusWriterReviewRoundRevisionDAO();
+			$reviewRoundRevision = $reviewRoundRevisionDao->getRoundRevision($oldReviewRound->getId());
 			if (
-			in_array(
-				$oldReviewRound->getStatus(),
-				array(
-					REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW,
-					REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED
-				)
-			)
+				$reviewRoundRevision instanceof DataObject &&
+				!empty($reviewRoundRevision->getData('revision_url'))
 			) {
 				$oldRevisionType = 'Author';
 			} else {
@@ -576,7 +576,6 @@ class FidusWriterPlugin extends GenericPlugin
 
 		$newVersionString = $this->stageToVersion($stageId, $round, 'Reviewer');
 
-
 		$dataArray = [
 			'old_version' => $oldVersionString,
 			'new_version' => $newVersionString,
@@ -586,6 +585,49 @@ class FidusWriterPlugin extends GenericPlugin
 		$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
 		$url = $fidusUrl . '/api/ojs/create_copy/' . $fidusId . '/';
 		$this->sendPostRequest($url, $dataArray);
+
+		return false;
+	}
+
+	function callbackStageAssignment($hookname, $args)
+	{
+		if (
+			"stageassignmentdao::_deletebyall" === $hookname ||
+			"stageassignmentdao::_insertobject" === $hookname
+		) {
+			$submissionId = $args[1][0];
+			$userGroupId = $args[1][1];
+			$userId = $args[1][2];
+			$userGroupDao = DAORegistry::getDAO('UserGroupDAO');
+			$userGroup = $userGroupDao->getById($userGroupId);
+			$role = $userGroup->getRoleId();
+
+			if (!in_array($role, [ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR, ROLE_ID_SITE_ADMIN, ROLE_ID_ASSISTANT])) {
+				return false;
+			}
+
+			$data = [
+				'key' => $this->getApiKey(),
+				'user_id' => $userId,
+				'role' => $role
+			];
+			$fidusId = $this->getSubmissionSetting($submissionId, 'fidusId');
+			$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
+
+			if ("stageassignmentdao::_insertobject" === $hookname) {
+				$user = $this->getUser($userId);
+				$fidusUrl .= "/api/ojs/add_editor/{$fidusId}/";
+				$data['email'] = $user->getEmail();
+				$data['username'] = $user->getUserName();
+			} else {
+				$fidusUrl .= "/api/ojs/remove_editor/{$fidusId}/";
+			}
+
+			$this->sendPostRequest(
+				$fidusUrl,
+				$data
+			);
+		}
 
 		return false;
 	}

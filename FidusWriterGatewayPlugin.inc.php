@@ -212,6 +212,9 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 						);
 						$this->sendJsonResponse($response);
 						break;
+					case 'copyeditDraftSubmit':
+						$this->copyeditDraftSubmit();
+						break;
 					default:
 						$error = " Not a valid request";
 						$this->sendErrorResponse($error);
@@ -353,6 +356,31 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 	 * submission or creates a new one.
 	 * @return array
 	 */
+	function copyeditDraftSubmit()
+	{
+		$submissionId = $this->getPOSTPayloadVariable("submission_id");
+		$submissionDao = Application::getSubmissionDAO();
+		$submission = $submissionDao->getById($submissionId);
+		$userId = $this->getPOSTPayloadVariable('ojs_uid');
+		$userDao = DAORegistry::getDAO('UserDAO');
+		$user = $userDao->getById($userId);
+
+		if (empty($submission) || empty($user)) {
+			throw new Exception("Error: no submission with given submissionId $submissionId exists");
+		}
+
+		$this->notifyAboutDraftFileUpdate($submission, $user);
+
+		$response = ["version" => $this->getApiVersion()];
+
+		$this->sendJsonResponse($response);
+	}
+
+	/**
+	 * Takes an article submission from author and either updates an existing
+	 * submission or creates a new one.
+	 * @return array
+	 */
 	function authorSubmit()
 	{
 		// Get all the variables used both when saving and updating submissions.
@@ -406,20 +434,15 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 
 			// Check stage
 			$stageId = $versionInfo['stageId'];
-			if ($stageId === 4) { // Revision in copyediting stage
-				// Send notification
-				$this->notifyAboutDraftFileUpdate($submission);
-			} elseif ($stageId === 3) { // Revision in reviewing stage
-				// Given that this is a resubmission, we need to set the status of
-				// the stage to REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED.
-				$round = $versionInfo['round'];
-				$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
-				$reviewRound = $reviewRoundDao->getReviewRound($submissionId, $stageId, $round);
-				$reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED);
-				$reviewRoundDao->updateObject($reviewRound);
-				// Send notification
-				$this->notifyAboutAuthorResubmission($submission);
-			}
+			// Given that this is a resubmission, we need to set the status of
+			// the stage to REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED.
+			$round = $versionInfo['round'];
+			$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
+			$reviewRound = $reviewRoundDao->getReviewRound($submissionId, $stageId, $round);
+			$reviewRound->setStatus(REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW_SUBMITTED);
+			$reviewRoundDao->updateObject($reviewRound);
+			// Send notification
+			$this->notifyAboutAuthorResubmission($submission);
 
 			$response = array(
 				"version" => $this->getApiVersion()
@@ -467,7 +490,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 		$mail->send();
 	}
 
-	function notifyAboutDraftFileUpdate($submission)
+	function notifyAboutDraftFileUpdate($submission, $user)
 	{
 		$appLocale = AppLocale::getLocale();
 
@@ -506,8 +529,6 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 		}
 
 		// Assign author and submission data
-		$primaryAuthor = $submission->getPrimaryAuthor();
-		$authorFullName = $primaryAuthor->getFullName();
 		$submissionLocale = $submission->getLocale();
 		$submissionTitle = $submission->getTitle($submissionLocale, false);
 		$contextDao = Application::getContextDAO();
@@ -517,7 +538,7 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 			'editorialContactName' => PKPLocale::translate('user.role.editors'),
 			'submissionTitle' => $submissionTitle,
 			'contextName' => $context->getName($submissionLocale),
-			'authorName' => $authorFullName
+			'authorName' => $user->getFullName()
 		));
 
 		$mail->send();
