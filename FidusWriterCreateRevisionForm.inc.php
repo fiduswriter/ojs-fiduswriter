@@ -60,11 +60,13 @@ class FidusWriterCreateRevisionForm extends Form {
 		$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
 		$reviewRound = $reviewRoundDao->getById($reviewRoundId);
 		$submissionId = $reviewRound->getSubmissionId();
+		$assignedUsers = $plugin->getAssignedUserIds($submissionId, $reviewRound->getStageId());
 
 		// Create revision in FidusWriter
 		$dataArray = [
 			'old_version' => $oldVersion,
 			'new_version' => $newVersion,
+			'granted_users' => implode(',', $assignedUsers),
 			'key' => $apiKey
 		];
 		$fidusId = $plugin->getSubmissionSetting($submissionId, 'fidusId');

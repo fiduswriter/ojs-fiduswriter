@@ -575,10 +575,12 @@ class FidusWriterPlugin extends GenericPlugin
 		}
 
 		$newVersionString = $this->stageToVersion($stageId, $round, 'Reviewer');
+		$assignedUsers = $this->getAssignedUserIds($submissionId, $stageId);
 
 		$dataArray = [
 			'old_version' => $oldVersionString,
 			'new_version' => $newVersionString,
+			'granted_users' => implode(',', $assignedUsers),
 			'key' => $this->getApiKey(), //shared key between OJS and Editor software
 		];
 
@@ -598,6 +600,9 @@ class FidusWriterPlugin extends GenericPlugin
 			$submissionId = $args[1][0];
 			$userGroupId = $args[1][1];
 			$userId = $args[1][2];
+			/**
+			 * @var UserGroupDAO $userGroupDao
+			 */
 			$userGroupDao = DAORegistry::getDAO('UserGroupDAO');
 			$userGroup = $userGroupDao->getById($userGroupId);
 			$role = $userGroup->getRoleId();
@@ -609,8 +614,15 @@ class FidusWriterPlugin extends GenericPlugin
 			$data = [
 				'key' => $this->getApiKey(),
 				'user_id' => $userId,
-				'role' => $role
+				'role' => $role,
+				'stage_ids' => ''
 			];
+
+			$userGroupStages = $userGroupDao->getAssignedStagesByUserGroupId($userGroup->getContextId(), $userGroup->getId());
+			if (!empty($userGroupStages)) {
+				$data['stage_ids'] = implode(',', array_keys($userGroupStages));
+			}
+
 			$fidusId = $this->getSubmissionSetting($submissionId, 'fidusId');
 			$fidusUrl = $this->getSubmissionSetting($submissionId, 'fidusUrl');
 
@@ -675,10 +687,13 @@ class FidusWriterPlugin extends GenericPlugin
 
 					$oldVersionString = $this->stageToVersion($stageId, $oldRound, $oldRevisionType);
 					$newVersionString = $this->stageToVersion(4);
+					// Assigned users
+					$assiendUsers = $this->getAssignedUserIds($submission->getId(), 4);
 
 					$dataArray = [
 						'old_version' => $oldVersionString,
 						'new_version' => $newVersionString,
+						'granted_users' => implode(',', $assiendUsers),
 						'key' => $this->getApiKey(), //shared key between OJS and Editor software
 					];
 
@@ -689,10 +704,13 @@ class FidusWriterPlugin extends GenericPlugin
 					// Submission proceeded to production from copyediting
 					$oldVersionString = $this->stageToVersion(REVIEW_ROUND_STATUS_ACCEPTED);
 					$newVersionString = $this->stageToVersion(5);
+					// Assigned users
+					$assiendUsers = $this->getAssignedUserIds($submission->getId(), 5);
 
 					$dataArray = [
 						'old_version' => $oldVersionString,
 						'new_version' => $newVersionString,
+						'granted_users' => implode(',', $assiendUsers),
 						'key' => $this->getApiKey(), //shared key between OJS and Editor software
 					];
 
@@ -729,6 +747,30 @@ class FidusWriterPlugin extends GenericPlugin
 	{
 		$userDao = DAORegistry::getDAO('UserDAO');
 		return $userDao->getById($userId);
+	}
+
+	/**
+	 * @param $submissionId
+	 * @param $stageId
+	 * @return int[]
+	 */
+	function getAssignedUserIds($submissionId, $stageId)
+	{
+		/**
+		 * @var StageAssignmentDAO $stageAssignmentDao
+		 */
+		$stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO');
+		$stageAssignments = $stageAssignmentDao->getBySubmissionAndStageId($submissionId, $stageId);
+
+		$userIds = [];
+
+		if (!$stageAssignments->wasEmpty) {
+			foreach ($stageAssignments->records as $assignment) {
+				$userIds[] = intval($assignment['user_id']);
+			}
+		}
+
+		return $userIds;
 	}
 
 
