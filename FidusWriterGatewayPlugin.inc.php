@@ -288,9 +288,9 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 		echo json_encode($response);
 		header('Connection: close');
 		header('Content-Length: ' . ob_get_length());
-		ob_end_flush();
 		ob_flush();
 		flush();
+		ob_end_flush();
 		return;
 	}
 
@@ -313,9 +313,9 @@ class FidusWriterGatewayPlugin extends GatewayPlugin
 
 		header('Connection: close');
 		header('Content-Length: ' . ob_get_length());
-		ob_end_flush();
 		ob_flush();
 		flush();
+		ob_end_flush();
 		return;
 	}
 
