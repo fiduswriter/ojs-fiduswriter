@@ -607,7 +607,11 @@ class FidusWriterPlugin extends GenericPlugin
 			$userGroup = $userGroupDao->getById($userGroupId);
 			$role = $userGroup->getRoleId();
 
-			if (!in_array($role, [ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR, ROLE_ID_SITE_ADMIN, ROLE_ID_ASSISTANT])) {
+			if (in_array($role, [ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR, ROLE_ID_SITE_ADMIN, ROLE_ID_ASSISTANT])) {
+				$roleType = "editor";
+			} elseif (in_array($role, [ROLE_ID_AUTHOR])) {
+				$roleType = "author";
+			} else {
 				return false;
 			}
 
@@ -628,11 +632,11 @@ class FidusWriterPlugin extends GenericPlugin
 
 			if ("stageassignmentdao::_insertobject" === $hookname) {
 				$user = $this->getUser($userId);
-				$fidusUrl .= "/api/ojs/add_editor/{$fidusId}/";
+				$fidusUrl .= "/api/ojs/add_{$roleType}/{$fidusId}/";
 				$data['email'] = $user->getEmail();
 				$data['username'] = $user->getUserName();
 			} else {
-				$fidusUrl .= "/api/ojs/remove_editor/{$fidusId}/";
+				$fidusUrl .= "/api/ojs/remove_{$roleType}/{$fidusId}/";
 			}
 
 			$this->sendPostRequest(
