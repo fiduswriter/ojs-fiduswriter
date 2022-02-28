@@ -1,0 +1,15 @@
+<schema version="0.2">
+	<table name="ojs_fiduswriter_revisions">
+		<field name="ojs_fiduswriter_revision_id" type="I8">
+			<KEY/>
+			<AUTOINCREMENT/>
+		</field>
+		<field name="review_round" type="I8">
+			<NOTNULL/>
+		</field>
+		<field name="revision_url" type="C2" size="255">
+			<NOTNULL/>
+		</field>
+	</table>
+
+</schema>

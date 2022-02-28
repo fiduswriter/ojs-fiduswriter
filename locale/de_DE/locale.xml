@@ -15,4 +15,5 @@
 	<message key="plugins.generic.fidusWriter.settings.saved">Fidus Writer API Schlüssel wurde gespeichert</message>
 	<message key="plugins.generic.fidusWriter.manager.settings.apiKeyRequired">Der Fidus Writer API Schlüssel ist vorgeschrieben!</message>
 	<message key="plugins.generic.fidusWriter.linkText">Dokument in Fidus Writer öffnen</message>
+	<message key="plugins.generic.fidusWriter.createRevision">Revision Erstellen</message>
 </locale>

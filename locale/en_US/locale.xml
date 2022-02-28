@@ -15,4 +15,7 @@
 	<message key="plugins.generic.fidusWriter.settings.saved">Fidus Writer API Key has been saved</message>
 	<message key="plugins.generic.fidusWriter.manager.settings.apiKeyRequired">The Fidus Writer API Key is required!</message>
 	<message key="plugins.generic.fidusWriter.linkText">Open document in Fidus Writer</message>
+	<message key="plugins.generic.fidusWriter.createRevision">Create Revision</message>
+	<message key="plugins.generic.fidusWriter.createRevisionDenied">Revision cannot be created, as the review round is not completed yet.</message>
+	<message key="plugins.generic.fidusWriter.createRevisionAllowed">Revision will be created in Fidus Writer and the author will get access to it.</message>
 </locale>
