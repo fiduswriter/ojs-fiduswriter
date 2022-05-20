@@ -12,11 +12,10 @@ class FidusWriterRevisionHandler extends Handler {
 
 	function showCreateFidusRevisionForm($args, $request)
 	{
-		$plugin = PluginRegistry::getPlugin('generic', 'fiduswriterplugin');
-		$pluginPath = $plugin->getPluginPath();
+		$plugin = FidusWriterPluginHelper::getFidusWriterPlugin();
 		$formTemplate = $plugin->getTemplateResource('createRevisionForm.tpl');
 
-		require_once($pluginPath . '/FidusWriterCreateRevisionForm.inc.php');
+		$plugin->import('form.FidusWriterCreateRevisionForm');
 		$form = new FidusWriterCreateRevisionForm($formTemplate);
 
 		if ($request->getUserVar('save')) {

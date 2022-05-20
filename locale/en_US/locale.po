@@ -1,0 +1,45 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: FidusWriterPlugin\n"
+"Report-Msgid-Bugs-To: https://github.com/fiduswriter/ojs-fiduswriter/issues\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2022-05-11T10:17:32+00:00\n"
+"PO-Revision-Date: 2022-05-11T10:17:32+00:00\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+
+msgid "plugins.generic.fidusWriter.displayName"
+msgstr "Fidus Writer Integration Plugin"
+
+msgid "plugins.generic.fidusWriter.description"
+msgstr "This plugin provides integration endpoints to use OJS and Fidus Writer instances as one integrated system."
+
+msgid "plugins.generic.fidusWriter.settings"
+msgstr "Settings"
+
+msgid "plugins.generic.fidusWriter.settings.apiKey.description"
+msgstr "Please choose a secret API key to allow communication with Fidus Writer servers."
+
+msgid "plugins.generic.fidusWriter.settings.apiKey"
+msgstr "Fidus Writer API Key"
+
+msgid "plugins.generic.fidusWriter.settings.saved"
+msgstr "Fidus Writer API Key has been saved"
+
+msgid "plugins.generic.fidusWriter.manager.settings.apiKeyRequired"
+msgstr "The Fidus Writer API Key is required!"
+
+msgid "plugins.generic.fidusWriter.linkText"
+msgstr "Open document in Fidus Writer"
+
+msgid "plugins.generic.fidusWriter.createRevision"
+msgstr "Create Revision"
+
+msgid "plugins.generic.fidusWriter.createRevisionDenied"
+msgstr "Revision cannot be created, as the review round is not completed yet."
+
+msgid "plugins.generic.fidusWriter.createRevisionAllowed"
+msgstr "Revision will be created in Fidus Writer and the author will get access to it."

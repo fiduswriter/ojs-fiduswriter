@@ -7,7 +7,7 @@
 
 import('lib.pkp.classes.core.PKPRequest');
 
-class NotificationRequest extends PKPRequest {
+class FidusWriterNotificationRequest extends PKPRequest {
 	protected $user;
 	protected $journalId;
 
@@ -30,14 +30,14 @@ class NotificationRequest extends PKPRequest {
 
 	/**
 	 * @param PKPRequest $baseRequest
-	 * @return NotificationRequest
+	 * @return FidusWriterNotificationRequest
 	 */
 	public static function create(PKPRequest $baseRequest, $user, $journalId = null)
 	{
-		$className = 'NotificationRequest';
+		$className = 'FidusWriterNotificationRequest';
 
 		/**
-		 * @var NotificationRequest
+		 * @var FidusWriterNotificationRequest
 		 */
 		$request = unserialize(
 			preg_replace(
