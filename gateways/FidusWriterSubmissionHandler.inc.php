@@ -163,6 +163,7 @@ class FidusWriterSubmissionHandler extends FidusWriterRequestHandler {
 
 		/** @var SubmissionDAO $submissionDao */
 		$submissionDao = DAORegistry::getDAO('SubmissionDAO');
+		/** @var Submission $submission */
 		$submission = $submissionDao->getById($submissionId);
 		/** @var UserDAO $userDao */
 		$userDao = DAORegistry::getDAO('UserDAO');
@@ -189,8 +190,9 @@ class FidusWriterSubmissionHandler extends FidusWriterRequestHandler {
 		}
 
 		// Assign author and submission data
-		$submissionLocale = $submission->getLocale();
-		$submissionTitle = $submission->getTitle($submissionLocale, false);
+		$submissionLocale = $submission->getData('locale');
+		$pub = $submission->getCurrentPublication();
+		$submissionTitle = $pub ? $pub->getLocalizedData('title', $submissionLocale) : '';
 		$contextDao = Application::getContextDAO();
 		$context = $contextDao->getById($submission->getJournalId());
 		AppLocale::requireComponents(LOCALE_COMPONENT_PKP_USER);
