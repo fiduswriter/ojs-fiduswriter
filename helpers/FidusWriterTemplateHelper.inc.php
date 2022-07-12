@@ -136,14 +136,36 @@ class FidusWriterTemplateHelper
 
 	protected function getRevisionUrl($submissionId, $stageId, $version)
 	{
-		$revisionUrl = FidusWriterPluginHelper::getGatewayPluginUrl() . '/documentReview?';
-		$revisionUrl .= http_build_query([
-			'submissionId' => $submissionId,
-			'stageId' => $stageId,
-			'version' => $version,
+		$fidusId = FidusWriterPluginHelper::getSubmissionSetting($submissionId, 'fidusId');
+		$fidusUrl = FidusWriterPluginHelper::getSubmissionSetting($submissionId, 'fidusUrl');
+		$checkRevisionUrl = $fidusUrl . '/api/ojs/check_revision/' . $fidusId . '/' . $version . '/';
+
+		$sessionManager = SessionManager::getManager();
+		$userSession = $sessionManager->getUserSession();
+		$user = $userSession->getUser();
+
+		$submissionDao = DAORegistry::getDAO('SubmissionDAO');
+		$submission = $submissionDao->getById($submissionId);
+		$journalId = $submission->getContextId();
+
+		$existsRevision = FidusWriterPluginHelper::sendRequest('GET', $checkRevisionUrl, [
+			'user_id' => $user->getId(),
+			'is_editor' => FidusWriterPluginHelper::isEditor($user->getId(), $journalId),
+			'key' => FidusWriterPluginHelper::getFidusWriterPlugin()->getApiKey()
 		]);
 
-		return $revisionUrl;
+		if (intval($existsRevision)) {
+			$revisionUrl = FidusWriterPluginHelper::getGatewayPluginUrl() . '/documentReview?';
+			$revisionUrl .= http_build_query([
+				'submissionId' => $submissionId,
+				'stageId' => $stageId,
+				'version' => $version,
+			]);
+
+			return $revisionUrl;
+		}
+
+		return null;
 	}
 
 	protected function getRevisionGridTemplateAssignments($reviewRound, $stageId, $assignedAsEditor)

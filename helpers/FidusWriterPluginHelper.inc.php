@@ -136,12 +136,13 @@ class FidusWriterPluginHelper
 		}
 
 		$result = curl_exec($curl);
-		curl_close($curl);
 
 		/* Handle error */
 		if (!$result) {
-			echo $result;
+			$e = curl_error($curl);
 		}
+
+		curl_close($curl);
 
 		return $result;
 	}
