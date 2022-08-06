@@ -15,7 +15,7 @@ https://www.fiduswriter.org/ojs-integration/
 
 2. Install OJS
 
-To install OJS please follow the instructions at https://github.com/pkp/ojs/ . This plugin is currently compatible with OJS 3.1.2, so check out the stable-3_1_2 branch.
+To install OJS please follow the instructions at https://github.com/pkp/ojs/ . Check out a version thatis compatible with the plugin - preferably an LTS release.
 
 3. Setup at least two journals on the OJS instance
 
@@ -65,9 +65,7 @@ In the section "Custom views" click on "Register journal". Enter the URL and API
 
 ## Credits
 
-This plugin has been developed by the [Opening Scolarly Communications in the Social Sciences (OSCOSS)](http://www.gesis.org/?id=10714) project, financed by the German Research Foundation (DFG) and executed by the University of Bonn and GESIS – Leibniz Institute for the Social Sciences.
-
-Lead Developer: [Afshin Sadeghi](https://github.com/sadeghiafshin)
+This plugin was originally developed by the [Opening Scolarly Communications in the Social Sciences (OSCOSS)](http://www.gesis.org/?id=10714) project in 2017, financed by the German Research Foundation (DFG) and executed by the University of Bonn and GESIS – Leibniz Institute for the Social Sciences. In 2021-2022, development has been financed through the [Cluster of Excellence ROOTS](https://www.cluster-roots.uni-kiel.de/en) at Kiel University.
 
 ## License
 
