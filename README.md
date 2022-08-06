@@ -62,6 +62,43 @@ Enter the administration interface at your Fidus Writer installation (http://mys
 
 In the section "Custom views" click on "Register journal". Enter the URL and API Key (from step 4) of your OJS installation.
 
+## Install OJS on NGINX
+
+If you need to install OJS on the same server as Fidus Writer, it may make sense to install both behind NGINX. A site cofniguration file an OJs instance could be initially be configured like this (before obtaining an SSL certificate using `certbot --nginx`):
+
+```
+server {
+  listen 80;
+  listen [::]:80;
+  server_name OJS.DOMAIN.COM;
+  root /var/www/ojs/;
+
+  index index.php index.html index.htm;
+
+
+  location / {
+    try_files $uri $uri/ /index.php$uri?$args;
+  }
+
+  location ~ ^(.+\.php)(.*)$ {
+    set $path_info $fastcgi_path_info;
+    fastcgi_split_path_info ^(.+\.php)(.*)$;
+    fastcgi_param PATH_INFO $path_info;
+    fastcgi_param PATH_TRANSLATED $document_root$path_info;
+    fastcgi_param SCRIPT_FILENAME $document_root/$fastcgi_script_name;
+    fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+    fastcgi_index index.php;
+    include fastcgi_params;
+  }
+
+  location ~ /\.ht {
+    deny all;
+  }
+}
+
+```
+
+
 
 ## Credits
 
