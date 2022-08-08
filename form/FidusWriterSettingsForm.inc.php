@@ -51,7 +51,7 @@ class FidusWriterSettingsForm extends Form
     /**
      * Save settings.
      */
-    function execute($object = NULL)
+    function execute(...$functionArgs)
     {
         $plugin = $this->_plugin;
         $plugin->updateSetting(CONTEXT_ID_NONE, 'apiKey', trim($this->getData('apiKey'), "\"\';"), 'string');
