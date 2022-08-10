@@ -43,9 +43,14 @@ class FidusWriterReviewHelper
 			} elseif ($recommendation === 0) { // Not sure what variable name this '0' corresponds to.
 				// reviewer accepted review
 				if ($reviewMethod === SUBMISSION_REVIEW_METHOD_OPEN) {
-					$dataArray['access_rights'] = 'comment';
+					$dataArray['review_method'] = 'open';
+				} elseif ($reviewMethod === SUBMISSION_REVIEW_METHOD_ANONYMOUS) {
+					$dataArray['review_method'] = 'anonymous';
+				} elseif ($reviewMethod === SUBMISSION_REVIEW_METHOD_DOUBLEANONYMOUS) {
+					$dataArray['review_method'] = 'doubleanonymous';
 				} else {
-					$dataArray['access_rights'] = 'review';
+					// Fallback
+					$dataArray['review_method'] = 'doubleanonymous';
 				}
 				$url = $fidusUrl . '/api/ojs/accept_reviewer/' . $fidusId . '/' . $versionString . '/';
 			} elseif (is_null($recommendation)) {
