@@ -21,6 +21,29 @@ class FidusWriterPluginHelper
 	}
 
 	/**
+	 * @param $journalId
+	 * @return array
+	 */
+	public static function getJournalManagers($journalId)
+	{
+		$userGroupDao = DAORegistry::getDAO('UserGroupDAO');
+		// Get managers
+		$journalManagers = [];
+		$managerGroups = $userGroupDao->getByRoleId($journalId, ROLE_ID_MANAGER);
+		while ($managerGroup = $managerGroups->next()) {
+			// Determine if the group is Journal Manager by the name of the role
+			if ($managerGroup->getData('nameLocaleKey') === 'default.groups.name.manager') {
+				$managers = $userGroupDao->getUsersById($managerGroup->getId(), $journalId);
+				while ($manager = $managers->next()) {
+					$journalManagers[] = $manager;
+				}
+			}
+		}
+
+		return $journalManagers;
+	}
+
+	/**
 	 * This function converts from the kind of versioning information of a document
 	 * as it's stored to the versioning information as it's stored on the FW side.
 	 * The main difference is this:
@@ -174,6 +197,20 @@ class FidusWriterPluginHelper
 
 		while ($assignment = $stageAssignments->next()) {
 			$userIds[] = intval($assignment->getUserId());
+		}
+
+		// Add journal managers
+		$submissionDao = DAORegistry::getDAO('SubmissionDAO');
+		$submission = $submissionDao->getById($submissionId);
+		$journalId = $submission->getContextId();
+		$journalManagers = FidusWriterPluginHelper::getJournalManagers($journalId);
+		if (!empty($journalManagers)) {
+			foreach ($journalManagers as $journalManager) {
+				$managerId = intval($journalManager->getId());
+				if (!in_array($managerId, $userIds)) {
+					$userIds[] = $managerId;
+				}
+			}
 		}
 
 		return $userIds;

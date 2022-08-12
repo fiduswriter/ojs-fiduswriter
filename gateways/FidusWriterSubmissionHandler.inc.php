@@ -325,6 +325,28 @@ class FidusWriterSubmissionHandler extends FidusWriterRequestHandler {
 		$stageAssignmentDao->build($submission->getId(), $authorUserGroupId, $user->getId());
 
 		/**
+		 * Set journal managers as the editor of the submission in FidusWriter
+		 */
+		$userGroupDao = DAORegistry::getDAO('UserGroupDAO');
+		// Get managers
+		$journalManagers = FidusWriterPluginHelper::getJournalManagers($journalId);
+		if (!empty($journalManagers)) {
+			$addEditorUrl =  $fidusUrl . "/api/ojs/add_editor/{$fidusId}/";
+			$managerData = [
+				'key' => FidusWriterPluginHelper::getFidusWriterPlugin()->getApiKey(),
+				'role' => ROLE_ID_MANAGER,
+				'stage_ids' => '1,3,4,5'
+			];
+
+			foreach ($journalManagers as $journalManager) {
+				$managerData['user_id'] = $journalManager->getId();
+				$managerData['email'] = $journalManager->getEmail();
+				$managerData['username'] = $journalManager->getUserName();
+				FidusWriterPluginHelper::sendPostRequest($addEditorUrl, $managerData);
+			}
+		}
+
+		/**
 		 * Send notifications
 		 */
 		// Create a fake request object as the real request does not contain the required data.
@@ -335,7 +357,7 @@ class FidusWriterSubmissionHandler extends FidusWriterRequestHandler {
 
 		// The following has been adapted from PKPSubmissionSubmitStep4Form
 		// Assign the default stage participants.
-		$userGroupDao = DAORegistry::getDAO('UserGroupDAO');
+		//$userGroupDao = DAORegistry::getDAO('UserGroupDAO');
 		$notifyUsers = array();
 		// Manager and assistant roles -- for each assigned to this stage in setup.
 		// If there is only one user for the group, automatically assign the user to the stage.
