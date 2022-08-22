@@ -6,6 +6,7 @@
 * License: MIT. See LICENSE.md for details.
 */
 
+require_once('helpers/FidusWriterPluginHelper.inc.php');
 require_once('FidusWriterPlugin.inc.php');
 return new FidusWriterPlugin();
 

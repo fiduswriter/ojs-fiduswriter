@@ -13,12 +13,8 @@ class FidusWriterReviewRoundRevisionDAO extends DAO {
 			[(int) $reviewRoundId]
 		);
 
-		$returner = null;
-		if ($result->RecordCount() != 0) {
-			$returner = $this->_fromRow($result->GetRowAssoc(false));
-		}
-		$result->Close();
-		return $returner;
+		$row = (array) $result->current();
+		return $row ? $this->_fromRow($row) : null;
 	}
 
 	/**

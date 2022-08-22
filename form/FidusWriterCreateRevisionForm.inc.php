@@ -41,7 +41,6 @@ class FidusWriterCreateRevisionForm extends Form {
 			REVIEW_ROUND_STATUS_ACCEPTED,
 			REVIEW_ROUND_STATUS_DECLINED
 		];
-		$plugin = $functionArgs[0];
 
 		$reviewRoundStatus = $this->getData('reviewRoundStatus');
 		$reviewRoundId = $this->getData('reviewRoundId');
@@ -60,7 +59,7 @@ class FidusWriterCreateRevisionForm extends Form {
 		$reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO');
 		$reviewRound = $reviewRoundDao->getById($reviewRoundId);
 		$submissionId = $reviewRound->getSubmissionId();
-		$assignedUsers = $plugin->getAssignedUserIds($submissionId, $reviewRound->getStageId());
+		$assignedUsers = FidusWriterPluginHelper::getAssignedUserIds($submissionId, $reviewRound->getStageId());
 
 		// Create revision in FidusWriter
 		$dataArray = [
@@ -69,13 +68,13 @@ class FidusWriterCreateRevisionForm extends Form {
 			'granted_users' => implode(',', $assignedUsers),
 			'key' => $apiKey
 		];
-		$fidusId = $plugin->getSubmissionSetting($submissionId, 'fidusId');
-		$fidusUrl = $plugin->getSubmissionSetting($submissionId, 'fidusUrl');
+		$fidusId = FidusWriterPluginHelper::getSubmissionSetting($submissionId, 'fidusId');
+		$fidusUrl = FidusWriterPluginHelper::getSubmissionSetting($submissionId, 'fidusUrl');
 		$fidusUrl .= '/api/ojs/create_copy/' . $fidusId . '/';
-		$plugin->sendPostRequest($fidusUrl, $dataArray);
+		FidusWriterPluginHelper::sendPostRequest($fidusUrl, $dataArray);
 
 		// Get URL to revision in FidusWriter
-		$revisionUrl = $plugin->getGatewayPluginUrl() . '/documentReview?submissionId=' . $submissionId . '&stageId=' . $reviewRound->getStageId() . '&version=' . $newVersion;
+		$revisionUrl = FidusWriterPluginHelper::getGatewayPluginUrl() . '/documentReview?submissionId=' . $submissionId . '&stageId=' . $reviewRound->getStageId() . '&version=' . $newVersion;
 
 		/**
 		 * @var FidusWriterReviewRoundRevisionDAO $reviewRoundRevisionDao
@@ -93,5 +92,3 @@ class FidusWriterCreateRevisionForm extends Form {
 		$reviewRoundRevisionDao->save($reviewRoundRevision);
 	}
 }
-
-?>

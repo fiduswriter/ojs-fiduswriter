@@ -7,9 +7,13 @@
 		<tbody>
 		<tr>
 			<td style="text-align: center">
-				<a href="{$revisionUrl}" target="FidusWriter" rel="noopener noreferrer">
-					{'plugins.generic.fidusWriter.linkText'|translate}
-				</a>
+                {if $revisionUrl}
+					<a href="{$revisionUrl}" target="FidusWriter" rel="noopener noreferrer">
+                        {'plugins.generic.fidusWriter.linkText'|translate}
+					</a>
+                {else}
+                    {'grid.noItems'|translate}
+                {/if}
 			</td>
 		</tr>
 		</tbody>

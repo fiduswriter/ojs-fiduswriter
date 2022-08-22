@@ -1,0 +1,39 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: FidusWriterPlugin\n"
+"Report-Msgid-Bugs-To: https://github.com/fiduswriter/ojs-fiduswriter/issues\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2022-05-11T10:17:32+00:00\n"
+"PO-Revision-Date: 2022-05-11T10:17:32+00:00\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+
+msgid "plugins.generic.fidusWriter.displayName"
+msgstr "Fidus Writer Integrations Plugin"
+
+msgid "plugins.generic.fidusWriter.description"
+msgstr "Dieses Plugin bietet eine Verknüpfung mit Fidus Writer Servern, um beide als ein integriertes System zu verwenden."
+
+msgid "plugins.generic.fidusWriter.settings"
+msgstr "Einstellungen"
+
+msgid "plugins.generic.fidusWriter.settings.apiKey.description"
+msgstr "Bitte wähle einen geheimen API Schlüssel. Mit dem Schlüssel werden Fidus Writer Isntanxen direkt mit dieser OJS Instanz kommunizieren können."
+
+msgid "plugins.generic.fidusWriter.settings.apiKey"
+msgstr "Fidus Writer API Schlüssel"
+
+msgid "plugins.generic.fidusWriter.settings.saved"
+msgstr "Fidus Writer API Schlüssel wurde gespeichert"
+
+msgid "plugins.generic.fidusWriter.manager.settings.apiKeyRequired"
+msgstr "Der Fidus Writer API Schlüssel ist vorgeschrieben!"
+
+msgid "plugins.generic.fidusWriter.linkText"
+msgstr "Dokument in Fidus Writer öffnen"
+
+msgid "plugins.generic.fidusWriter.createRevision"
+msgstr "Revision Erstellen"
